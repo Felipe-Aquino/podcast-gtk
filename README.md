@@ -13,3 +13,13 @@ Written in Python 3.x it uses [`Python Gtk+ 3`](http://python-gtk-3-tutorial.rea
 - [`validators`](https://validators.readthedocs.io/en/latest/) 
 
 You can get these packages running  `python3 -m pip install python-vlc feedparser validators` on the terminal.
+
+## How to use
+Follow these steps:
+
+1.  Paste a pocast feed in the text input then press the add(+) button;
+2.  If you select a podcast, a list of episodes will appear in the right-hand side;
+3.  Select an episodes, this will show the name of the episode in the bottom bar.
+4.  Once an episode selected, hit the play button and wait for 2 or 3 seconds till the audio starts to play.
+5.  If you want to save the podcast you added, press the
+floppy-disk. And next time you open the application the podcast will be there
