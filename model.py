@@ -1,8 +1,12 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
-import enum
+import enum, time, os
 import font
 import vlc
+from requests import image_request
 
+def check_create_folder(path):
+    if not os.path.exists(path):
+        os.makedirs(path)
 
 def break_text(text, phrase_min_size=55):
     words = text.split(' ')
@@ -79,26 +83,11 @@ class Episode():
         self.layout = None
 
     def get_gtk_layout(self):
-        self.layout = layout = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        layout.set_margin_bottom(5)
-
-        info_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        l = Gtk.Label(self.name)
-        f = font.Font()
-        f.set_weight(font.FontWeigt.BOLD)
-        f.set_size(11)
-        l.modify_font(f.to_pango_desc())
-        l.set_halign(Gtk.Align.START)
-        info_box.pack_start(l, True, True, 0)
-
-        l = Gtk.Label(self.date)
-        f = font.Font()
-        f.set_size(10)
-        l.modify_font(f.to_pango_desc())
-        l.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse('#1530EE'))
-        l.set_halign(Gtk.Align.END)
-        info_box.pack_start(l, True, True, 0)
-        layout.pack_start(info_box, True, True, 0)
+        builder = Gtk.Builder.new_from_file('ui/episode.glade')
+        self.layout = layout = builder.get_object('episode')
+        
+        builder.get_object('name').set_text(self.name)
+        builder.get_object('date').set_text(self.date)
 
         return layout
 
@@ -116,10 +105,11 @@ class Episode():
 
 
 class Podcast():
-    def __init__(self, name, summary, date, image='images/question-mark.jpg'):
+    def __init__(self, name, summary, date, url='', image='images/question-mark.jpg'):
         self.name = name
         self.summary = summary
         self.date = date
+        self.url = url
         self.image = image
         self.episodes = []
         self.status = Status()
@@ -128,32 +118,16 @@ class Podcast():
     def add_episodes(self, episodes):
         self.episodes.extend(episodes)
 
-    def get_gtk_layout(self):
-        self.layout = layout = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        layout.set_margin_bottom(5)
-
-        pod_image = get_gtk_image_from_file(self.image)
-        layout.pack_start(pod_image, False, False, 5)
-
-        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-
-        l = Gtk.Label(self.name)
-        f = font.Font()
-        f.set_weight(font.FontWeigt.BOLD)
-        l.modify_font(f.to_pango_desc())
-        l.set_halign(Gtk.Align.START)
-        info_box.pack_start(l, True, True, 0)
-
-        l = Gtk.Label(self.summary)
-        l.set_halign(Gtk.Align.START)
-        info_box.pack_start(l, True, True, 0)
-
-        l = Gtk.Label(self.date)
-        l.set_halign(Gtk.Align.START)
-        info_box.pack_start(l, True, True, 0)
-
-        layout.pack_start(info_box, False, False, 0)
-
+    def get_gtk_layout(self):        
+        builder = Gtk.Builder.new_from_file('ui/podcast.glade')
+        self.layout = layout = builder.get_object('podcast')
+        pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(self.image, 75, 75, True)
+        builder.get_object('image').set_from_pixbuf(pixbuf)
+        
+        builder.get_object('name').set_text(self.name)
+        builder.get_object('summary').set_text(self.summary)
+        builder.get_object('date').set_text(self.date)
+       
         return layout
 
     def to_dict(self):
@@ -161,13 +135,14 @@ class Podcast():
             'name': self.name,
             'summary': self.summary,
             'date': self.date,
+            'url': self.url,
             'image': self.image,
             'episodes': [e.to_dict() for e in self.episodes]
         }
 
     @staticmethod
     def from_dict(d):
-        p = Podcast(d['name'], d['summary'], d['date'], d['image'])
+        p = Podcast(d['name'], d['summary'], d['date'], d['url'], d['image'])
         p.add_episodes([Episode.from_dict(e) for e in d['episodes']])
         return p
 
@@ -185,29 +160,23 @@ class Player(Gtk.Box):
         self.duration = 360000000
         self.duration_str = 0
 
-        hbox = Gtk.Box()
-        self.progressbar = Gtk.ProgressBar()
-        self.progressbar.set_text('0:0:0.00 - 0:0:0.00')
-        self.progressbar.set_show_text(True)
-        hbox.pack_start(self.progressbar, True, True, 10)
-
         self.play_img = get_gtk_image_from_file('./icons/play.png', 20, 20)
         self.pause_img = get_gtk_image_from_file('./icons/pause.png', 20, 20)
         stop_img = get_gtk_image_from_file('./icons/stop.png', 20, 20)
 
-        self.track_label = Gtk.Label('')
-        self.pack_start(self.track_label, False, False, 2)
+        builder = Gtk.Builder.new_from_file("ui/player.glade")
+        self.progressbar = builder.get_object('progressbar')
+        self.track_label = builder.get_object('track_label')
 
-        self.play_pause_button = Gtk.Button()
+        self.play_pause_button = builder.get_object('play_pause_button')
         self.play_pause_button.set_image(self.play_img)
         self.play_pause_button.connect('clicked', self.play_pause_action)
-        hbox.pack_start(self.play_pause_button, False, False, 2)
 
-        self.stop_button = Gtk.Button()
+        self.stop_button = builder.get_object('stop_button')
         self.stop_button.set_image(stop_img)
         self.stop_button.connect('clicked', self.stop_action)
-        hbox.pack_start(self.stop_button, False, False, 2)
-        self.pack_start(hbox, False, False, 2)
+        
+        self.pack_start(builder.get_object('player_box'), False, False, 0)
 
         self.player_state = PlayerState.STOPPED
 
@@ -238,6 +207,7 @@ class Player(Gtk.Box):
 
     def new_link(self, url):
         try:
+            self.stop_action(None)
             self.media = self.instance.media_new(url)
             self.player.set_media(self.media)
         except:
@@ -273,3 +243,48 @@ class Player(Gtk.Box):
             self.stop_action(None)
 
         return True
+
+
+class SearchItem(Gtk.Box):
+    def __init__(self, name, summary, date, url, image):
+        super(SearchItem, self).__init__(orientation=Gtk.Orientation.VERTICAL)
+        builder = Gtk.Builder.new_from_file("ui/search_item.glade")
+        builder.get_object('name').set_text(name)
+        builder.get_object('summary').set_text(summary)
+        builder.get_object('date').set_text(date)
+
+        pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(image, 100, 100, True)
+        builder.get_object('image').set_from_pixbuf(pixbuf)
+        self.pack_start(builder.get_object('search_item'), True, True, 0)
+
+        self.url = url
+         
+
+    @staticmethod
+    def from_dict(d):
+        summary = 'Artist: {} \nGenre: {} \nCountry: {}'.format(d['artistName'], d['primaryGenreName'], d['country'])
+        
+        date = time.strftime("%a, %d %b %Y %H:%M:%S", time.strptime(d['releaseDate'], "%Y-%m-%dT%H:%M:%SZ")) 
+        image = SearchItem.get_image_from_url(d['collectionName'], d['artworkUrl100'])
+        name = break_text(d['collectionName'])
+
+        return SearchItem(name, summary, date, d['feedUrl'], image)
+
+    @staticmethod
+    def get_image_from_url(img_name, url):
+        default_image = './images/question-mark.jpg'
+
+        try:
+            extension = url[-3:]
+            if extension in ['jpg', 'jpeg', 'png']:
+                check_create_folder('./temp/images/')
+                image = './temp/images/' + img_name.lower()+'.'+extension
+                image_request(url, image)
+                return image
+            else:
+                return default_image
+        except:
+            return default_image
+
+        return default_image
+

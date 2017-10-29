@@ -3,11 +3,8 @@ import sys
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
+from controllers import PodcastPageController, SearchPageController
 
-from model import Podcast, Episode, Player, get_gtk_image_from_file
-from api import podcast_parse, is_url, PodcastFile
-
-PODS_FILE_NAME = 'podcasts.json'
 
 class AppWin(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
@@ -15,154 +12,32 @@ class AppWin(Gtk.ApplicationWindow):
 
         self.resize(720, 540)
         self.set_position(Gtk.WindowPosition.CENTER)
+        #self.maximize()
 
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.info_box = Gtk.Box(spacing=6)
+        hb = Gtk.HeaderBar()
+        hb.set_show_close_button(True)
+        hb.props.title = "Podcast"
+        self.set_titlebar(hb)
 
-        self.podcasts = []
+        self.podcast_controller = PodcastPageController()
+        self.search_controller = SearchPageController()
 
-        self.pod_rows = []
-        self.ep_rows = []
+        stack = Gtk.Stack()
+        stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        stack.set_transition_duration(500)
 
-        self.podcast_box = Gtk.ListBox()
-        self.podcast_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.podcast_box.connect('row-activated', self.on_podcast_selected)
+        stack.add_titled(self.podcast_controller.get_layout(), "podcasts", "Podcasts")
+        stack.add_titled(self.search_controller.get_layout(), "search", "Search")
 
-        bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.add_button = Gtk.Button()
-        img = get_gtk_image_from_file('./icons/add.png', 10, 10) 
-        self.add_button.set_image(img)
-        self.add_button.connect('clicked', self.add_podcast)
+        stack_switcher = Gtk.StackSwitcher()
+        stack_switcher.set_stack(stack)
+        stack_switcher.set_halign(Gtk.Align.CENTER)
 
-        self.update_button = Gtk.Button()
-        img = get_gtk_image_from_file('./icons/update.png', 10, 10) 
-        self.update_button.set_image(img)
-        #self.update_button.connect('clicked', self.tshow)
-
-        self.save_button = Gtk.Button()
-        img = get_gtk_image_from_file('./icons/save.png', 10, 10) 
-        self.save_button.set_image(img)
-        self.save_button.connect('clicked', self.on_save)
-
-        self.podcast_entry = Gtk.Entry()
-        self.podcast_entry.set_placeholder_text('Insert a new podcast feed then press the + button ->')
-
-        bar.pack_start(self.podcast_entry, True, True, 0)
-        bar.pack_start(self.add_button, False, True, 0)
-        bar.pack_start(self.update_button, False, True, 0)
-        bar.pack_start(self.save_button, False, True, 0)
-        row = Gtk.ListBoxRow()
-        row.add(bar)
-        self.podcast_box.add(row)
-
-        self.episode_box = Gtk.ListBox()
-        self.episode_box.set_selection_mode(Gtk.SelectionMode.NONE)
-        self.episode_box.connect('row-activated', self.on_episode_selected)
-
-        row = Gtk.ListBoxRow()
-        row.add(Gtk.Label('Episodes'))
-        #row.set_selectable(False)
-        self.episode_box.add(row)
-
-        ep_scrolled_window = Gtk.ScrolledWindow()
-        ep_scrolled_window.set_border_width(2)
-        ep_scrolled_window.set_propagate_natural_width(True)
-        ep_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
-        ep_scrolled_window.add_with_viewport(self.episode_box)
-
-        pod_scrolled_window = Gtk.ScrolledWindow()
-        pod_scrolled_window.set_border_width(2)
-        pod_scrolled_window.set_propagate_natural_width(True)
-        pod_scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
-        pod_scrolled_window.add_with_viewport(self.podcast_box)
-
-        self.info_box.pack_start(pod_scrolled_window, True, True, 0)
-        self.info_box.pack_start(ep_scrolled_window, True, True, 0)
-
-        self.player = Player()
-        self.main_box.pack_start(self.info_box, True, True, 0)
-        self.main_box.pack_start(self.player, False, False, 0)
-
-        self.add(self.main_box)
-
-        self.on_load()
+        hb.pack_start(stack_switcher)
+        self.add(stack)
 
         self.show_all()
 
-        self.pod_selected = None
-        self.pod_model_selected = None
-
-    def add_podcast(self, button):
-        url = self.podcast_entry.get_text()
-        if is_url(url):
-            podcast = Podcast('', '', '')
-            podcast.status.set_trigger(self.update_list, podcast)
-            podcast_parse(url, podcast)
-        
-    def update_list(self, status, podcast):
-        if status.is_success():
-            self.podcast_entry.set_text('')
-
-            self.podcasts.append(podcast)
-            row = Gtk.ListBoxRow()
-            row.add(podcast.get_gtk_layout())
-            self.podcast_box.add(row)
-            self.pod_rows.append(row)
-
-            self.podcast_box.show_all()
-
-    def on_podcast_selected(self, widget, row):
-        p = row.get_child()
-        if p != self.pod_selected:
-            for pod in self.podcasts:
-                if pod.layout == p:
-                    for e in self.ep_rows:
-                        self.episode_box.remove(e)
-
-                    self.ep_rows = []
-                    for e in pod.episodes:
-                        row = Gtk.ListBoxRow()
-                        row.add(e.get_gtk_layout())
-                        self.episode_box.add(row)
-                        self.ep_rows.append(row)
-                    
-                    self.pod_selected = p
-                    self.pod_model_selected = pod
-                    break
-            self.episode_box.show_all()
-
-    def on_save(self, button):
-        file = PodcastFile(PODS_FILE_NAME)
-        file.write(self.podcasts)
-
-    def on_load(self):
-        file = PodcastFile(PODS_FILE_NAME)
-        try:
-            pods = file.read()
-        
-            if pods:
-                self.podcasts.extend(pods)
-
-                for p in self.podcasts:
-                    row = Gtk.ListBoxRow()
-                    row.add(p.get_gtk_layout())
-                    self.podcast_box.add(row)
-                    self.pod_rows.append(row)
-
-                #self.podcast_box.show_all()
-        except BaseException as e:
-            print('Exception', e)
-
-    def on_episode_selected(self, widget, row):
-        p = row.get_child()
-        
-        for ep in self.pod_model_selected.episodes:
-            if ep.layout == p:
-                self.player.new_link(ep.link)
-                text = self.pod_model_selected.name + ' > ' + ep.name
-                self.player.set_track_text(text)
-                break
-        self.episode_box.show_all()
 
 class App(Gtk.Application):
     def __init__(self, *args, **kwargs):
@@ -181,7 +56,7 @@ class App(Gtk.Application):
         action.connect('activate', self.on_quit)
         self.add_action(action)
 
-        builder = Gtk.Builder.new_from_file("menu.ui")
+        builder = Gtk.Builder.new_from_file("ui/menu.ui")
         self.set_app_menu(builder.get_object('app-menu'))
 
     def do_activate(self):

@@ -1,6 +1,6 @@
 import time, threading, json
 import feedparser
-from model import Podcast, Episode, break_text
+from model import Podcast, Episode, SearchItem, break_text
 from requests import image_request
 import validators
 
@@ -70,7 +70,8 @@ def podcast_parse(url, podcast):
         summary = feed['summary']
         podcast.summary = break_text(summary)
         podcast.date = get_date(feed)
-        
+        podcast.url = url
+
         set_image_from_feed(feed, podcast)
     
         entries = response['entries']
@@ -97,3 +98,13 @@ class PodcastFile:
         pods = [p.to_dict() for p in podcasts]
         with open(self.file_name, 'w') as file:
             json.dump(pods, file)
+
+class SearchFile:
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def read(self):
+        searched = {"resultCount": 0, "results":[]}
+        with open(self.file_name, 'r') as file:
+            searched = json.load(file)
+        return [SearchItem.from_dict(s) for s in searched['results']]
