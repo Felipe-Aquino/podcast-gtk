@@ -165,7 +165,16 @@ class Player(Gtk.Box):
         stop_img = get_gtk_image_from_file('./icons/stop.png', 20, 20)
 
         builder = Gtk.Builder.new_from_file("ui/player.glade")
-        self.progressbar = builder.get_object('progressbar')
+        self.progress = builder.get_object('progress')
+        self.progress.set_sensitive(False)
+        self.adjustment = builder.get_object('adjustment')
+        self.adjustment.connect('value-changed', self.on_adjustment_changed)
+        self.progress.connect('button-press-event', self.on_mouse_press)
+        self.progress.connect('button-release-event', self.on_mouse_release)
+
+        self.current_time_label = builder.get_object('current_time_label')
+        self.changing_time_label = builder.get_object('changing_time_label')
+        self.total_time_label = builder.get_object('total_time_label')
         self.track_label = builder.get_object('track_label')
 
         self.play_pause_button = builder.get_object('play_pause_button')
@@ -186,12 +195,30 @@ class Player(Gtk.Box):
 
         self.timeout_id = GObject.timeout_add(1000, self.on_timeout, None)
 
+        self.mouse_moving = False
+
+    def on_mouse_press(self, *b):
+        self.mouse_moving = True
+
+    def on_mouse_release(self, *b):
+        self.changing_time_label.set_text('')
+        self.player.set_time(int(self.duration*self.adjustment.get_value()/100))
+        self.mouse_moving = False
+
+    def on_adjustment_changed(self, adjustment):
+        if self.mouse_moving:
+            value = self.duration*self.adjustment.get_value()/100
+            value_str = self.parse_millisecond(int(value))
+            self.changing_time_label.set_text(value_str)
+
     def stop_action(self, button):
         if self.player_state != PlayerState.STOPPED:
             self.player.stop()
             self.play_pause_button.set_image(self.play_img)
-            self.progressbar.set_text('0:0:0.00 - 0:0:0.00')
-            self.progressbar.set_fraction(0.0)
+            self.current_time_label.set_text('00:00:00.00')
+            self.total_time_label.set_text('00:00:00.00')
+            self.adjustment.set_value(0.0)
+            self.progress.set_sensitive(False)
             self.player_state = PlayerState.STOPPED
 
     def play_pause_action(self, button):
@@ -200,6 +227,7 @@ class Player(Gtk.Box):
         elif self.player_state == PlayerState.PAUSED:
             self.player.set_pause(0)
             self.player_state = PlayerState.PLAYING
+            button.set_image(self.pause_img)
         else:
             self.player_state = PlayerState.PAUSED
             button.set_image(self.play_img)
@@ -216,12 +244,12 @@ class Player(Gtk.Box):
     def parse_millisecond(self, ms):
         if isinstance(ms, int):
             s = ms / 1000
-            hours = int(s // 3600)
-            minutes = int((s % 3600) // 60)
+            hours = s // 3600
+            minutes = (s % 3600) // 60
             seconds = (s % 3600) % 60
 
-            return str(hours) + ':' + str(minutes) + ':' + '{:2.2f}'.format(seconds)
-        return '0:0:0.00'
+            return '{:02.0f}:{:02.0f}:{:02.2f}'.format(hours, minutes, seconds)
+        return '00:00:00.00'
 
     def set_track_text(self, text):
         self.track_label.set_text(text)
@@ -230,8 +258,9 @@ class Player(Gtk.Box):
         if self.player_state == PlayerState.PLAYING:
             current = self.player.get_time()
             current_str = self.parse_millisecond(current)
-            self.progressbar.set_text(current_str + ' - ' + self.duration_str)
-            self.progressbar.set_fraction(current / self.duration)
+            self.current_time_label.set_text(current_str)
+            if not self.mouse_moving:
+                self.adjustment.set_value(100*current / self.duration)
 
         elif self.player.is_playing():
             self.player_state = PlayerState.PLAYING
@@ -239,7 +268,9 @@ class Player(Gtk.Box):
 
             self.duration = self.player.get_length()
             self.duration_str = self.parse_millisecond(self.duration)
-        elif self.progressbar.get_fraction() >= 0.99:
+            self.total_time_label.set_text(self.duration_str)
+            self.progress.set_sensitive(True)
+        elif self.adjustment.get_value() >= 99.5:
             self.stop_action(None)
 
         return True
