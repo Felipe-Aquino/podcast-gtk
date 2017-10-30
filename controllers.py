@@ -23,7 +23,6 @@ class PodcastPageController(Controller):
     def __init__(self):
         self.podcasts = []
 
-        self.pod_rows = []
         self.ep_rows = []
 
         builder = Gtk.Builder.new_from_file("ui/main.glade")
@@ -45,6 +44,12 @@ class PodcastPageController(Controller):
 
         self.pod_selected = None
         self.pod_model_selected = None
+        self.pod_row_selected = None
+
+        builder = Gtk.Builder.new_from_file('ui/popup.glade')
+        builder.get_object('update_button').connect('clicked', self.on_update_podcast)
+        builder.get_object('delete_button').connect('clicked', self.on_delete_podcast)
+        self.popup = builder.get_object('popup')
 
     def get_layout(self):
         return self.main_box
@@ -70,11 +75,11 @@ class PodcastPageController(Controller):
             row = Gtk.ListBoxRow()
             row.add(podcast.get_gtk_layout())
             self.podcast_box.add(row)
-            self.pod_rows.append(row)
 
             self.podcast_box.show_all()
 
     def on_podcast_selected(self, widget, row):
+        self.pod_row_selected = row
         p = row.get_child()
         if p != self.pod_selected:
             for pod in self.podcasts:
@@ -112,7 +117,6 @@ class PodcastPageController(Controller):
                     row = Gtk.ListBoxRow()
                     row.add(p.get_gtk_layout())
                     self.podcast_box.add(row)
-                    self.pod_rows.append(row)
 
                 # self.podcast_box.show_all()
         except BaseException as e:
@@ -128,6 +132,45 @@ class PodcastPageController(Controller):
                 self.player.set_track_text(text)
                 break
         self.episode_box.show_all()
+
+    def on_mouse_press(self, w, e):
+        if e.button == 3 and self.pod_selected != None:
+            
+            self.popup.set_relative_to(self.pod_selected)
+            self.popup.popup()
+
+    def on_delete_podcast(self, button):
+        if self.pod_selected != None:
+            self.podcast_box.remove(self.pod_row_selected)
+            self.podcasts.remove(self.pod_model_selected)
+            self.pod_row_selected = None
+            self.pod_selected = None
+
+            for e in self.ep_rows:
+                self.episode_box.remove(e)
+
+            self.ep_rows = []
+            self.player.set_track_text('')
+
+    def on_update_podcast(self, button):
+        if self.pod_selected != None:
+            url = self.pod_model_selected.url
+            if is_url(url):
+                podcast = self.pod_model_selected
+                podcast_parse(url, podcast)
+
+                for e in self.ep_rows:
+                        self.episode_box.remove(e)
+
+                self.ep_rows = []
+                for e in podcast.episodes:
+                    row = Gtk.ListBoxRow()
+                    row.add(e.get_gtk_layout())
+                    self.episode_box.add(row)
+                    self.ep_rows.append(row)
+
+                self.episode_box.show_all()
+            self.popup.popdown()
 
 
 class SearchPageController(Controller):

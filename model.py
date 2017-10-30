@@ -1,6 +1,5 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import enum, time, os
-import font
 import vlc
 from requests import image_request
 
@@ -104,6 +103,7 @@ class Episode():
         return Episode(d['name'], d['date'], d['link'], d['duration'])
 
 
+
 class Podcast():
     def __init__(self, name, summary, date, url='', image='images/question-mark.jpg'):
         self.name = name
@@ -123,7 +123,7 @@ class Podcast():
         self.layout = layout = builder.get_object('podcast')
         pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(self.image, 75, 75, True)
         builder.get_object('image').set_from_pixbuf(pixbuf)
-        
+
         builder.get_object('name').set_text(self.name)
         builder.get_object('summary').set_text(self.summary)
         builder.get_object('date').set_text(self.date)

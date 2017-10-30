@@ -14,6 +14,8 @@ class AppWin(Gtk.ApplicationWindow):
         self.set_position(Gtk.WindowPosition.CENTER)
         #self.maximize()
 
+        self.connect("button-press-event", self.on_mouse_button_press)
+
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
         hb.props.title = "Podcast"
@@ -38,6 +40,8 @@ class AppWin(Gtk.ApplicationWindow):
 
         self.show_all()
 
+    def on_mouse_button_press(self, w, e):
+        self.podcast_controller.on_mouse_press(w, e)
 
 class App(Gtk.Application):
     def __init__(self, *args, **kwargs):

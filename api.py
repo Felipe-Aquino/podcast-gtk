@@ -57,6 +57,7 @@ def populate_episodes(entries, podcast):
             link = get_link(entry),
             duration= entry['itunes_duration'] if 'itunes_duration' in entry else ''
         ))
+    podcast.episodes = []
     podcast.add_episodes(episodes)
 
 
