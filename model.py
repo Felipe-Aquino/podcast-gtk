@@ -8,7 +8,7 @@ def check_create_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def break_text(text, phrase_min_size=55):
+def break_text(text, phrase_min_size=75):
     words = text.split(' ')
     phrase_size = 0
     new_text = ''
@@ -283,13 +283,22 @@ class SearchItem(Gtk.Box):
         builder.get_object('name').set_text(name)
         builder.get_object('summary').set_text(summary)
         builder.get_object('date').set_text(date)
+        builder.get_object('add').connect('clicked', self.on_add_clicked)
 
         pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(image, 100, 100, True)
         builder.get_object('image').set_from_pixbuf(pixbuf)
         self.pack_start(builder.get_object('search_item'), True, True, 0)
 
         self.url = url
-         
+        
+        self.add_action = None
+
+    def link_add_action(self, action):
+        self.add_action = action
+
+    def on_add_clicked(self, button):
+        if callable(self.add_action):
+            self.add_action(self.url)
 
     @staticmethod
     def from_dict(d):

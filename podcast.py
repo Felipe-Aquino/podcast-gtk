@@ -20,7 +20,7 @@ class AppWin(Gtk.ApplicationWindow):
         self.set_titlebar(hb)
 
         self.podcast_controller = PodcastPageController()
-        self.search_controller = SearchPageController()
+        self.search_controller = SearchPageController(self.podcast_controller)
 
         stack = Gtk.Stack()
         stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)

@@ -67,7 +67,7 @@ def podcast_parse(url, podcast):
     if response:
         feed = response['feed']
         podcast.name = feed['title']
-        summary = feed['summary']
+        summary = feed['summary'] if 'summary' in feed else feed['title']
         podcast.summary = break_text(summary)
         podcast.date = get_date(feed)
         podcast.url = url

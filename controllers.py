@@ -49,6 +49,12 @@ class PodcastPageController(Controller):
     def get_layout(self):
         return self.main_box
 
+    def add_podcast_from_url(self, url):
+        if is_url(url):
+            podcast = Podcast('', '', '', '')
+            podcast.status.set_trigger(self.update_list, podcast)
+            podcast_parse(url, podcast)
+
     def add_podcast(self, button):
         url = self.podcast_entry.get_text()
         if is_url(url):
@@ -76,7 +82,6 @@ class PodcastPageController(Controller):
                     for e in self.ep_rows:
                         self.episode_box.remove(e)
 
-                    del self.ep_rows
                     self.ep_rows = []
                     for e in pod.episodes:
                         row = Gtk.ListBoxRow()
@@ -126,7 +131,7 @@ class PodcastPageController(Controller):
 
 
 class SearchPageController(Controller):
-    def __init__(self):
+    def __init__(self, pod_controller):
         builder = Gtk.Builder.new_from_file('ui/search.glade')
         self.search_box = builder.get_object('search')
         self.podcast_entry = builder.get_object('podcast_entry')
@@ -134,6 +139,7 @@ class SearchPageController(Controller):
         builder.get_object('search_button').connect('clicked', self.on_find)
 
         self.search_rows = []
+        self.pod_controller = pod_controller
 
     def on_find(self, button):
         text = str(self.podcast_entry.get_text())
@@ -158,6 +164,7 @@ class SearchPageController(Controller):
             for r in results:
                 row = Gtk.ListBoxRow()
                 row.add(r)
+                r.link_add_action(self.pod_controller.add_podcast_from_url)
                 self.search_list_box.add(row)
                 self.search_rows.append(row)
             self.search_list_box.show_all()
