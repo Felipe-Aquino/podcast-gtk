@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 import re, os
 
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GObject
 from model import Podcast, Episode, Player
-from api import podcast_parse, is_url, PodcastFile, SearchFile
+from api import podcast_parse, is_url, expect, PodcastFile, SearchFile
 from requests import file_request
 
 PODS_FILE_NAME = 'temp/podcasts.json'
@@ -178,13 +178,15 @@ class SearchPageController(Controller):
         builder = Gtk.Builder.new_from_file('ui/search.glade')
         self.search_box = builder.get_object('search')
         self.podcast_entry = builder.get_object('podcast_entry')
+        self.podcast_entry.connect('activate', self.on_find)
         self.search_list_box = builder.get_object('search_list_box')
-        builder.get_object('search_button').connect('clicked', self.on_find)
+        self.spinner = builder.get_object('spinner')
 
         self.search_rows = []
         self.pod_controller = pod_controller
 
     def on_find(self, button):
+        self.spinner.start()
         text = str(self.podcast_entry.get_text())
 
         regex = re.compile('\s+')
@@ -193,16 +195,9 @@ class SearchPageController(Controller):
         
         itunes_url = 'https://itunes.apple.com/search?term={}&media=podcast'.format(text)
 
-        try:
-            check_create_folder('./temp')
-
-            file_request(itunes_url, SEARCH_FILE_NAME)
-            file = SearchFile(SEARCH_FILE_NAME)
-            results = file.read()
-
+        def updating_list(results):
             for row in self.search_rows:
                 self.search_list_box.remove(row)
-            del self.search_rows
             self.search_rows = []
             for r in results:
                 row = Gtk.ListBoxRow()
@@ -211,10 +206,24 @@ class SearchPageController(Controller):
                 self.search_list_box.add(row)
                 self.search_rows.append(row)
             self.search_list_box.show_all()
+            self.spinner.stop()
+
+        @expect
+        def requesting():
+            file_request(itunes_url, SEARCH_FILE_NAME)
+            file = SearchFile(SEARCH_FILE_NAME)
+            results = file.read()
+
+            GObject.idle_add(lambda: updating_list(results))
+
+        try:
+            check_create_folder('./temp')
+
+            requesting()
 
         except BaseException as e:
             print('Exception', e)
-
+        
     def get_layout(self):
         return self.search_box
 

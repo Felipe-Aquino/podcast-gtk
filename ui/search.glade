@@ -16,11 +16,14 @@
           <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="margin_left">5</property>
+            <property name="margin_right">5</property>
             <property name="spacing">3</property>
             <child>
               <object class="GtkEntry" id="podcast_entry">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="primary_icon_stock">gtk-find</property>
                 <property name="placeholder_text" translatable="yes">New search</property>
               </object>
               <packing>
@@ -31,17 +34,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="search_button">
-                <property name="label">gtk-find</property>
+              <object class="GtkSpinner" id="spinner">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
+                <property name="can_focus">False</property>
+                <property name="margin_right">5</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="padding">2</property>
+                <property name="pack_type">end</property>
                 <property name="position">1</property>
               </packing>
             </child>
