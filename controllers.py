@@ -1,17 +1,20 @@
 from abc import ABC, abstractmethod
-import re, os
+import re
+import os
 
 from gi.repository import Gtk, Gdk, GObject
-from model import Podcast, Episode, Player
-from api import podcast_parse, is_url, expect, PodcastFile, SearchFile
+from model import Podcast, PodcastRow, Episode, EpisodeRow, Player
+from api import podcast_parse, is_url, expect, SearchFile
 from requests import file_request
+from database import PodcastDB
 
-PODS_FILE_NAME = 'temp/podcasts.json'
 SEARCH_FILE_NAME = 'temp/searched.json'
+
 
 def check_create_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
+
 
 class Controller(ABC):
     @abstractmethod
@@ -21,14 +24,9 @@ class Controller(ABC):
 
 class PodcastPageController(Controller):
     def __init__(self):
-        self.podcasts = []
-
-        self.ep_rows = []
-
         builder = Gtk.Builder.new_from_file("ui/main.glade")
         self.podcast_entry = builder.get_object('podcast_entry')
         builder.get_object('add_button').connect('clicked', self.add_podcast)
-        builder.get_object('save_button').connect('clicked', self.on_save)
         #builder.get_object('update_button').connect('clicked', self.on_update)
 
         self.episode_box = builder.get_object('episode_box')
@@ -40,10 +38,10 @@ class PodcastPageController(Controller):
         self.player = Player()
         self.main_box.pack_start(self.player, False, False, 0)
 
+        check_create_folder('./temp')
+        self.database = PodcastDB()
         self.on_load()
 
-        self.pod_selected = None
-        self.pod_model_selected = None
         self.pod_row_selected = None
 
         builder = Gtk.Builder.new_from_file('ui/popup.glade')
@@ -55,119 +53,90 @@ class PodcastPageController(Controller):
         return self.main_box
 
     def add_podcast_from_url(self, url):
-        if is_url(url):
+        if is_url(url) and not self.database.check_podcast_url(url):
             podcast = Podcast('', '', '', '')
             podcast.status.set_trigger(self.update_list, podcast)
             podcast_parse(url, podcast)
+            self.database.insert_podcast(podcast)
+            pod_id = self.database.get_podcast_id(podcast)
+            if pod_id:
+                self.database.insert_episodes(pod_id[0], podcast.episodes)
 
     def add_podcast(self, button):
         url = self.podcast_entry.get_text()
-        if is_url(url):
-            podcast = Podcast('', '', '', '')
-            podcast.status.set_trigger(self.update_list, podcast)
-            podcast_parse(url, podcast)
+        self.add_podcast_from_url(url)
 
     def update_list(self, status, podcast):
         if status.is_success():
             self.podcast_entry.set_text('')
-
-            self.podcasts.append(podcast)
-            row = Gtk.ListBoxRow()
-            row.add(podcast.get_gtk_layout())
-            self.podcast_box.add(row)
+            self.podcast_box.add(PodcastRow(podcast))
 
             self.podcast_box.show_all()
 
     def on_podcast_selected(self, widget, row):
-        self.pod_row_selected = row
-        p = row.get_child()
-        if p != self.pod_selected:
-            for pod in self.podcasts:
-                if pod.layout == p:
-                    for e in self.ep_rows:
-                        self.episode_box.remove(e)
+        if self.pod_row_selected != row:
+            self.pod_row_selected = row
 
-                    self.ep_rows = []
-                    for e in pod.episodes:
-                        row = Gtk.ListBoxRow()
-                        row.add(e.get_gtk_layout())
-                        self.episode_box.add(row)
-                        self.ep_rows.append(row)
+            for e in self.episode_box:
+                self.episode_box.remove(e)
 
-                    self.pod_selected = p
-                    self.pod_model_selected = pod
-                    break
+            pod_id = self.database.get_podcast_id(row.podcast)
+            for ep in self.database.fetch_episodes(pod_id[0], 50):
+                e = Episode.from_tuple(ep)
+                self.episode_box.add(EpisodeRow(e))
+
             self.episode_box.show_all()
 
-    def on_save(self, button):
-        check_create_folder('./temp')
-        file = PodcastFile(PODS_FILE_NAME)
-        file.write(self.podcasts)
-
     def on_load(self):
-        check_create_folder('./temp')
-        file = PodcastFile(PODS_FILE_NAME)
         try:
-            pods = file.read()
+            for pod in self.database.fetch_pocasts():
+                episodes = self.database.fetch_episodes(pod[0], 50)
+                p = Podcast.from_tuple(pod[1:])
+                p.add_episodes([Episode.from_tuple(e) for e in episodes])
 
-            if pods:
-                self.podcasts.extend(pods)
+                self.podcast_box.add(PodcastRow(p))
 
-                for p in self.podcasts:
-                    row = Gtk.ListBoxRow()
-                    row.add(p.get_gtk_layout())
-                    self.podcast_box.add(row)
-
-                # self.podcast_box.show_all()
         except BaseException as e:
             print('Exception', e)
 
     def on_episode_selected(self, widget, row):
-        p = row.get_child()
-
-        for ep in self.pod_model_selected.episodes:
-            if ep.layout == p:
-                self.player.new_link(ep.link)
-                text = self.pod_model_selected.name + ' > ' + ep.name
-                self.player.set_track_text(text)
-                break
-        self.episode_box.show_all()
+        self.player.new_link(row.episode.link)
+        text = self.pod_row_selected.podcast.name + ' > ' + row.episode.name
+        self.player.set_track_text(text)
 
     def on_mouse_press(self, w, e):
-        if e.button == 3 and self.pod_selected != None:
-            
-            self.popup.set_relative_to(self.pod_selected)
+        if e.button == 3 and self.pod_row_selected != None:
+            self.popup.set_relative_to(self.pod_row_selected.get_child())
             self.popup.popup()
 
     def on_delete_podcast(self, button):
-        if self.pod_selected != None:
+        if self.pod_row_selected != None:
+            pod_id = self.database.get_podcast_id(
+                self.pod_row_selected.podcast)
+            self.database.delete_podcast(pod_id[0])
             self.podcast_box.remove(self.pod_row_selected)
-            self.podcasts.remove(self.pod_model_selected)
             self.pod_row_selected = None
-            self.pod_selected = None
 
-            for e in self.ep_rows:
+            for e in self.episode_box:
                 self.episode_box.remove(e)
 
-            self.ep_rows = []
             self.player.set_track_text('')
 
     def on_update_podcast(self, button):
-        if self.pod_selected != None:
-            url = self.pod_model_selected.url
+        if self.pod_row_selected != None:
+            url = self.pod_row_selected.podcast.url
             if is_url(url):
-                podcast = self.pod_model_selected
+                podcast = self.pod_row_selected.podcast
                 podcast_parse(url, podcast)
+                pod_id = self.database.get_podcast_id(podcast)
+                self.database.insert_new_episodes(pod_id[0], podcast.episodes)
 
-                for e in self.ep_rows:
-                        self.episode_box.remove(e)
+                for e in self.episode_box:
+                    self.episode_box.remove(e)
 
-                self.ep_rows = []
-                for e in podcast.episodes:
-                    row = Gtk.ListBoxRow()
-                    row.add(e.get_gtk_layout())
-                    self.episode_box.add(row)
-                    self.ep_rows.append(row)
+                for ep in self.database.fetch_episodes(pod_id[0], 50):
+                    e = Episode.from_tuple(ep)
+                    self.episode_box.add(EpisodeRow(e))
 
                 self.episode_box.show_all()
             self.popup.popdown()
@@ -192,8 +161,9 @@ class SearchPageController(Controller):
         regex = re.compile('\s+')
         text = text.lower()
         text = regex.sub('+', text)
-        
-        itunes_url = 'https://itunes.apple.com/search?term={}&media=podcast'.format(text)
+
+        itunes_url = 'https://itunes.apple.com/search?term={}&media=podcast'.format(
+            text)
 
         def updating_list(results):
             for row in self.search_rows:
@@ -223,8 +193,6 @@ class SearchPageController(Controller):
 
         except BaseException as e:
             print('Exception', e)
-        
+
     def get_layout(self):
         return self.search_box
-
-    

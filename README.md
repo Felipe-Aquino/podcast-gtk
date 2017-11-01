@@ -18,8 +18,7 @@ You can get these packages running  `python3 -m pip install python-vlc feedparse
 Follow these steps:
 
 0.  Run with the command `python podcast.py`;
-1.  Paste a pocast feed in the text input then press the add(+) button;
+1.  Paste a pocast feed in the text input then press the add button (or search for it). The podcast will be saved in the local database and you can delete or update it with a mouse right-click over the selected podcast;
 2.  If you select a podcast, a list of episodes will appear in the right-hand side;
 3.  Select an episodes, this will show the name of the episode in the bottom bar.
 4.  Once an episode selected, hit the play button and wait for 2 or 3 seconds till the audio starts to play.
-5.  If you want to save the podcast you added, press the floppy-disk. And next time you open the application the podcast will be there.

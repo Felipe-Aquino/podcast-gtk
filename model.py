@@ -102,6 +102,21 @@ class Episode():
     def from_dict(d):
         return Episode(d['name'], d['date'], d['link'], d['duration'])
 
+    @staticmethod
+    def from_tuple(t):
+        return Episode(*t)
+
+
+class EpisodeRow(Gtk.ListBoxRow):
+    def __init__(self, episode):
+        super(EpisodeRow, self).__init__()
+        builder = Gtk.Builder.new_from_file('ui/episode.glade')
+        self.add(builder.get_object('episode'))
+        
+        builder.get_object('name').set_text(episode.name)
+        builder.get_object('date').set_text(episode.date)
+
+        self.episode = episode
 
 
 class Podcast():
@@ -145,6 +160,25 @@ class Podcast():
         p = Podcast(d['name'], d['summary'], d['date'], d['url'], d['image'])
         p.add_episodes([Episode.from_dict(e) for e in d['episodes']])
         return p
+
+    @staticmethod
+    def from_tuple(t):
+        return Podcast(*t)
+
+
+class PodcastRow(Gtk.ListBoxRow):
+    def __init__(self, podcast):
+        super(PodcastRow, self).__init__()
+        builder = Gtk.Builder.new_from_file('ui/podcast.glade')
+        self.add(builder.get_object('podcast'))
+        pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(podcast.image, 75, 75, True)
+        builder.get_object('image').set_from_pixbuf(pixbuf)
+
+        builder.get_object('name').set_text(podcast.name)
+        builder.get_object('summary').set_text(podcast.summary)
+        builder.get_object('date').set_text(podcast.date)
+
+        self.podcast = podcast
 
 
 class PlayerState(enum.Enum):
