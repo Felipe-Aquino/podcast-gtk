@@ -18,8 +18,8 @@
       </object>
       <packing>
         <property name="expand">False</property>
-        <property name="fill">False</property>
-        <property name="padding">5</property>
+        <property name="fill">True</property>
+        <property name="padding">3</property>
         <property name="position">0</property>
       </packing>
     </child>
@@ -29,22 +29,51 @@
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkLabel" id="name">
+          <object class="GtkBox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="halign">start</property>
-            <property name="label" translatable="yes">Name</property>
-            <attributes>
-              <attribute name="font-desc" value="&lt;Inserir valor&gt; 12"/>
-              <attribute name="style" value="normal"/>
-              <attribute name="weight" value="bold"/>
-              <attribute name="variant" value="normal"/>
-              <attribute name="stretch" value="normal"/>
-              <attribute name="scale" value="1"/>
-            </attributes>
+            <child>
+              <object class="GtkRevealer" id="load_revealer">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="transition_type">none</property>
+                <child>
+                  <object class="GtkSpinner" id="spinner">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="name">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="halign">start</property>
+                <property name="label" translatable="yes">Name</property>
+                <attributes>
+                  <attribute name="font-desc" value="&lt;Inserir valor&gt; 12"/>
+                  <attribute name="style" value="normal"/>
+                  <attribute name="weight" value="bold"/>
+                  <attribute name="variant" value="normal"/>
+                  <attribute name="stretch" value="normal"/>
+                  <attribute name="scale" value="1"/>
+                </attributes>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
@@ -80,6 +109,7 @@
       <packing>
         <property name="expand">False</property>
         <property name="fill">False</property>
+        <property name="padding">2</property>
         <property name="position">1</property>
       </packing>
     </child>

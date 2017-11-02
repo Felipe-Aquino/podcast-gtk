@@ -7,7 +7,7 @@ def check_create_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def break_text(text, phrase_min_size=75):
+def break_text(text, phrase_min_size=70):
     words = text.split(' ')
     phrase_size = 0
     new_text = ''
@@ -19,7 +19,7 @@ def break_text(text, phrase_min_size=75):
         if phrase_size > phrase_min_size:
             new_text += '\n'
             phrase_size = 0
-
+    new_text = new_text[:-1] if new_text[-1] == '\n' else new_text 
     return new_text
 
 
@@ -79,16 +79,6 @@ class Episode():
         self.date = date
         self.link = link
         self.duration = duration
-        self.layout = None
-
-    def get_gtk_layout(self):
-        builder = Gtk.Builder.new_from_file('ui/episode.glade')
-        self.layout = layout = builder.get_object('episode')
-        
-        builder.get_object('name').set_text(self.name)
-        builder.get_object('date').set_text(self.date)
-
-        return layout
 
     def to_dict(self):
         return {
@@ -128,22 +118,9 @@ class Podcast():
         self.image = image
         self.episodes = []
         self.status = Status()
-        self.layout = None
 
     def add_episodes(self, episodes):
         self.episodes.extend(episodes)
-
-    def get_gtk_layout(self):        
-        builder = Gtk.Builder.new_from_file('ui/podcast.glade')
-        self.layout = layout = builder.get_object('podcast')
-        pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(self.image, 75, 75, True)
-        builder.get_object('image').set_from_pixbuf(pixbuf)
-
-        builder.get_object('name').set_text(self.name)
-        builder.get_object('summary').set_text(self.summary)
-        builder.get_object('date').set_text(self.date)
-       
-        return layout
 
     def to_dict(self):
         return {
@@ -177,8 +154,17 @@ class PodcastRow(Gtk.ListBoxRow):
         builder.get_object('name').set_text(podcast.name)
         builder.get_object('summary').set_text(podcast.summary)
         builder.get_object('date').set_text(podcast.date)
+        self.load_revealer = builder.get_object('load_revealer')
+        self.spinner = builder.get_object('spinner')
 
         self.podcast = podcast
+
+    def loading(self, b):
+        self.load_revealer.set_reveal_child(b)
+        if b:
+            self.spinner.start()
+        else:
+            self.spinner.stop()
 
 
 class PlayerState(enum.Enum):
@@ -361,4 +347,3 @@ class SearchItem(Gtk.Box):
             return default_image
 
         return default_image
-

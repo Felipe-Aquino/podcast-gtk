@@ -4,7 +4,7 @@ import os
 
 from gi.repository import Gtk, Gdk, GObject
 from model import Podcast, PodcastRow, Episode, EpisodeRow, Player
-from api import podcast_parse, is_url, expect, SearchFile
+from api import podcast_parse, is_url, expect_call, SearchFile
 from requests import file_request
 from database import PodcastDB
 
@@ -29,6 +29,8 @@ class PodcastPageController(Controller):
         builder.get_object('add_button').connect('clicked', self.add_podcast)
         #builder.get_object('update_button').connect('clicked', self.on_update)
 
+        builder.get_object('episode_scroll').connect('edge-overshot', self.on_scroll_overshot)
+
         self.episode_box = builder.get_object('episode_box')
         self.episode_box.connect('row-activated', self.on_episode_selected)
         self.podcast_box = builder.get_object('podcast_box')
@@ -51,6 +53,14 @@ class PodcastPageController(Controller):
 
     def get_layout(self):
         return self.main_box
+
+    def on_scroll_overshot(self, scroll_window, pos, *data):
+        if pos == Gtk.PositionType.BOTTOM and self.pod_row_selected != None:
+            for ep in self.database.fetch_more(50):
+                e = Episode.from_tuple(ep)
+                self.episode_box.add(EpisodeRow(e))
+
+            self.episode_box.show_all()
 
     def add_podcast_from_url(self, url):
         if is_url(url) and not self.database.check_podcast_url(url):
@@ -111,8 +121,7 @@ class PodcastPageController(Controller):
 
     def on_delete_podcast(self, button):
         if self.pod_row_selected != None:
-            pod_id = self.database.get_podcast_id(
-                self.pod_row_selected.podcast)
+            pod_id = self.database.get_podcast_id(self.pod_row_selected.podcast)
             self.database.delete_podcast(pod_id[0])
             self.podcast_box.remove(self.pod_row_selected)
             self.pod_row_selected = None
@@ -123,23 +132,39 @@ class PodcastPageController(Controller):
             self.player.set_track_text('')
 
     def on_update_podcast(self, button):
-        if self.pod_row_selected != None:
-            url = self.pod_row_selected.podcast.url
-            if is_url(url):
-                podcast = self.pod_row_selected.podcast
-                podcast_parse(url, podcast)
-                pod_id = self.database.get_podcast_id(podcast)
+        sel = self.pod_row_selected
+        def show(result, error):
+            if not error:
+                podcast = result
+                pod_id = self.database.get_podcast_id(sel.podcast)
                 self.database.insert_new_episodes(pod_id[0], podcast.episodes)
+                episodes = self.database.fetch_episodes(pod_id[0], 50)
+                
+                if self.pod_row_selected == sel:
+                    for e in self.episode_box:
+                        self.episode_box.remove(e)
 
-                for e in self.episode_box:
-                    self.episode_box.remove(e)
+                    for ep in episodes:
+                        e = Episode.from_tuple(ep)
+                        self.episode_box.add(EpisodeRow(e))
 
-                for ep in self.database.fetch_episodes(pod_id[0], 50):
-                    e = Episode.from_tuple(ep)
-                    self.episode_box.add(EpisodeRow(e))
+                    self.episode_box.show_all()
 
-                self.episode_box.show_all()
-            self.popup.popdown()
+            sel.loading(False)
+            
+        
+        @expect_call(on_done=show)
+        def updating(url):
+            podcast = Podcast('', '', '', '')
+            podcast_parse(url, podcast)
+            return podcast
+
+        url = sel.podcast.url
+        if is_url(url):
+            sel.loading(True)
+            updating(url)   
+        self.popup.popdown()
+        
 
 
 class SearchPageController(Controller):
@@ -149,50 +174,42 @@ class SearchPageController(Controller):
         self.podcast_entry = builder.get_object('podcast_entry')
         self.podcast_entry.connect('activate', self.on_find)
         self.search_list_box = builder.get_object('search_list_box')
-        self.spinner = builder.get_object('spinner')
+        self.spinner = builder.get_object('spinner_revealer')
 
         self.search_rows = []
         self.pod_controller = pod_controller
 
     def on_find(self, button):
-        self.spinner.start()
+        self.spinner.set_reveal_child(True)
         text = str(self.podcast_entry.get_text())
 
         regex = re.compile('\s+')
         text = text.lower()
         text = regex.sub('+', text)
 
-        itunes_url = 'https://itunes.apple.com/search?term={}&media=podcast'.format(
-            text)
+        itunes_url = 'https://itunes.apple.com/search?term={}&media=podcast'.format(text)
 
-        def updating_list(results):
-            for row in self.search_rows:
-                self.search_list_box.remove(row)
-            self.search_rows = []
-            for r in results:
-                row = Gtk.ListBoxRow()
-                row.add(r)
-                r.link_add_action(self.pod_controller.add_podcast_from_url)
-                self.search_list_box.add(row)
-                self.search_rows.append(row)
-            self.search_list_box.show_all()
-            self.spinner.stop()
+        def updating_list(results, error):
+            if not error:
+                for row in self.search_rows:
+                    self.search_list_box.remove(row)
+                self.search_rows = []
+                for r in results:
+                    row = Gtk.ListBoxRow()
+                    row.add(r)
+                    r.link_add_action(self.pod_controller.add_podcast_from_url)
+                    self.search_list_box.add(row)
+                    self.search_rows.append(row)
+                self.search_list_box.show_all()
+            self.spinner.set_reveal_child(False)
 
-        @expect
+        @expect_call(on_done=updating_list)
         def requesting():
             file_request(itunes_url, SEARCH_FILE_NAME)
             file = SearchFile(SEARCH_FILE_NAME)
-            results = file.read()
+            return file.read()
 
-            GObject.idle_add(lambda: updating_list(results))
-
-        try:
-            check_create_folder('./temp')
-
-            requesting()
-
-        except BaseException as e:
-            print('Exception', e)
-
+        requesting()
+        
     def get_layout(self):
         return self.search_box

@@ -1,15 +1,33 @@
-import time
-import threading
-import json
+import time, threading, json
 import feedparser
 from model import Podcast, Episode, SearchItem, break_text
 from requests import image_request
 import validators
-
+from gi.repository import GObject
 
 def expect(fn):
     def wrapped(*args):
         threading.Thread(target=fn, args=args).start()
+    return wrapped
+
+def async_call(f, on_done):
+    def call():
+        result, error = None, None
+
+        try:
+            result = f()
+        except BaseException as e:
+            error = e
+
+        GObject.idle_add(lambda: on_done(result, error))
+
+    threading.Thread(target=call).start()
+
+def expect_call(on_done = lambda r, e: None):
+    def wrapped(fn):
+        def run(*args):
+            async_call(lambda: fn(*args), on_done)
+        return run
     return wrapped
 
 
