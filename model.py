@@ -7,21 +7,6 @@ def check_create_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-def break_text(text, phrase_min_size=70):
-    words = text.split(' ')
-    phrase_size = 0
-    new_text = ''
-
-    for word in words:
-        phrase_size += len(word)
-
-        new_text += word + ' '
-        if phrase_size > phrase_min_size:
-            new_text += '\n'
-            phrase_size = 0
-    new_text = new_text[:-1] if new_text[-1] == '\n' else new_text 
-    return new_text
-
 
 def get_gtk_image_from_file(filename, width=75, height=75, keep_ratio=True):
     img = Gtk.Image()
@@ -296,9 +281,9 @@ class Player(Gtk.Box):
         return True
 
 
-class SearchItem(Gtk.Box):
+class SearchItem(Gtk.ListBoxRow):
     def __init__(self, name, summary, date, url, image):
-        super(SearchItem, self).__init__(orientation=Gtk.Orientation.VERTICAL)
+        super(SearchItem, self).__init__()
         builder = Gtk.Builder.new_from_file("ui/search_item.glade")
         builder.get_object('name').set_text(name)
         builder.get_object('summary').set_text(summary)
@@ -307,7 +292,7 @@ class SearchItem(Gtk.Box):
 
         pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(image, 100, 100, True)
         builder.get_object('image').set_from_pixbuf(pixbuf)
-        self.pack_start(builder.get_object('search_item'), True, True, 0)
+        self.add(builder.get_object('search_item'))
 
         self.url = url
         
@@ -326,7 +311,7 @@ class SearchItem(Gtk.Box):
         
         date = time.strftime("%a, %d %b %Y %H:%M:%S", time.strptime(d['releaseDate'], "%Y-%m-%dT%H:%M:%SZ")) 
         image = SearchItem.get_image_from_url(d['collectionName'], d['artworkUrl100'])
-        name = break_text(d['collectionName'])
+        name = d['collectionName']
 
         return SearchItem(name, summary, date, d['feedUrl'], image)
 

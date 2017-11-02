@@ -176,7 +176,6 @@ class SearchPageController(Controller):
         self.search_list_box = builder.get_object('search_list_box')
         self.spinner = builder.get_object('spinner_revealer')
 
-        self.search_rows = []
         self.pod_controller = pod_controller
 
     def on_find(self, button):
@@ -191,15 +190,11 @@ class SearchPageController(Controller):
 
         def updating_list(results, error):
             if not error:
-                for row in self.search_rows:
+                for row in self.search_list_box:
                     self.search_list_box.remove(row)
-                self.search_rows = []
                 for r in results:
-                    row = Gtk.ListBoxRow()
-                    row.add(r)
                     r.link_add_action(self.pod_controller.add_podcast_from_url)
-                    self.search_list_box.add(row)
-                    self.search_rows.append(row)
+                    self.search_list_box.add(r)
                 self.search_list_box.show_all()
             self.spinner.set_reveal_child(False)
 

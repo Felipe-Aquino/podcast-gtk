@@ -1,6 +1,6 @@
 import time, threading, json
 import feedparser
-from model import Podcast, Episode, SearchItem, break_text
+from model import Podcast, Episode, SearchItem
 from requests import image_request
 import validators
 from gi.repository import GObject
@@ -93,7 +93,7 @@ def podcast_parse(url, podcast):
         feed = response['feed']
         podcast.name = feed['title']
         summary = feed['summary'] if 'summary' in feed else feed['title']
-        podcast.summary = break_text(summary)
+        podcast.summary = summary
         podcast.date = get_date(feed)
         podcast.url = url
 
@@ -117,6 +117,11 @@ class SearchFile:
 
     def read(self):
         searched = {"resultCount": 0, "results": []}
+        items = []
         with open(self.file_name, 'r') as file:
             searched = json.load(file)
-        return [SearchItem.from_dict(s) for s in searched['results']]
+    
+        for s in searched['results']:
+            if 'feedUrl' in s:
+                items.append(SearchItem.from_dict(s))
+        return items

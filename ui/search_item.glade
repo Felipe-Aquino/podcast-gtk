@@ -63,6 +63,10 @@
             <property name="can_focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Name</property>
+            <property name="wrap">True</property>
+            <property name="ellipsize">end</property>
+            <property name="max_width_chars">60</property>
+            <property name="lines">2</property>
             <attributes>
               <attribute name="font-desc" value="&lt;Inserir valor&gt; 12"/>
               <attribute name="style" value="normal"/>

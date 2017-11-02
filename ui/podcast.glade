@@ -84,6 +84,10 @@
             <property name="can_focus">False</property>
             <property name="halign">start</property>
             <property name="label" translatable="yes">Summary</property>
+            <property name="wrap">True</property>
+            <property name="ellipsize">end</property>
+            <property name="max_width_chars">60</property>
+            <property name="lines">4</property>
           </object>
           <packing>
             <property name="expand">True</property>
