@@ -1,7 +1,7 @@
 import time, threading, json
 import feedparser
 from model import Podcast, Episode, SearchItem
-from requests import image_request
+from requests import file_request
 import validators
 from gi.repository import GObject
 
@@ -65,7 +65,7 @@ def set_image_from_feed(feed, podcast):
         if extension in ['jpg', 'jpeg', 'png']:
             podcast.image = './images/' + \
                 feed['title'].lower() + '.' + extension
-            image_request(image_url, podcast.image)
+            file_request(image_url, podcast.image)
         else:
             podcast.image = default_image
     except:
@@ -75,12 +75,14 @@ def set_image_from_feed(feed, podcast):
 def populate_episodes(entries, podcast):
     episodes = []
     for entry in entries:
-        episodes.append(Episode(
-            name=entry['title'],
-            date=get_date(entry),
-            link=get_link(entry),
-            duration=entry['itunes_duration'] if 'itunes_duration' in entry else ''
-        ))
+        if entry:
+            episodes.append(Episode(
+                name=entry['title'],
+                date=get_date(entry),
+                link=get_link(entry),
+                duration=entry['itunes_duration'] if 'itunes_duration' in entry else ''
+            ))
+        
     podcast.episodes = []
     podcast.add_episodes(episodes)
 

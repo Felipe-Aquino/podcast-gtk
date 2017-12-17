@@ -1,7 +1,7 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import enum, time, os
 import vlc
-from requests import image_request
+from requests import file_request
 
 def check_create_folder(path):
     if not os.path.exists(path):
@@ -324,7 +324,7 @@ class SearchItem(Gtk.ListBoxRow):
             if extension in ['jpg', 'jpeg', 'png']:
                 check_create_folder('./temp/images/')
                 image = './temp/images/' + img_name.lower()+'.'+extension
-                image_request(url, image)
+                file_request(url, image)
                 return image
             else:
                 return default_image

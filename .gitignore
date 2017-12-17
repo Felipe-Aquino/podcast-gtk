@@ -1,0 +1,6 @@
+.vscode/tags
+temp/*
+images/*
+!images/question-mark.jpg
+ui/*.glade~
+__pycache__

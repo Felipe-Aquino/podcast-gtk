@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-import re
-import os
+import re, os
 
 from gi.repository import Gtk, Gdk, GObject
 from model import Podcast, PodcastRow, Episode, EpisodeRow, Player
@@ -175,6 +174,7 @@ class SearchPageController(Controller):
         self.podcast_entry.connect('activate', self.on_find)
         self.search_list_box = builder.get_object('search_list_box')
         self.spinner = builder.get_object('spinner_revealer')
+        self.sp = builder.get_object('spinner')
 
         self.pod_controller = pod_controller
 
