@@ -26,7 +26,7 @@ class PodcastPageController(Controller):
         builder = Gtk.Builder.new_from_file("ui/main.glade")
         self.podcast_entry = builder.get_object('podcast_entry')
         builder.get_object('add_button').connect('clicked', self.add_podcast)
-        #builder.get_object('update_button').connect('clicked', self.on_update)
+        builder.get_object('update_button').connect('clicked', self.on_update_all)
 
         builder.get_object('episode_scroll').connect('edge-overshot', self.on_scroll_overshot)
 
@@ -132,14 +132,22 @@ class PodcastPageController(Controller):
 
     def on_update_podcast(self, button):
         sel = self.pod_row_selected
+        self.on_update(sel)   
+        self.popup.popdown()
+        
+    def on_update_all(self, button):
+        for row in self.podcast_box:
+            self.on_update(row)
+
+    def on_update(self, pod_row_update):
         def show(result, error):
             if not error:
                 podcast = result
-                pod_id = self.database.get_podcast_id(sel.podcast)
+                pod_id = self.database.get_podcast_id(pod_row_update.podcast)
                 self.database.insert_new_episodes(pod_id[0], podcast.episodes)
-                episodes = self.database.fetch_episodes(pod_id[0], 50)
                 
-                if self.pod_row_selected == sel:
+                if self.pod_row_selected == pod_row_update:
+                    episodes = self.database.fetch_episodes(pod_id[0], 50)
                     for e in self.episode_box:
                         self.episode_box.remove(e)
 
@@ -149,8 +157,7 @@ class PodcastPageController(Controller):
 
                     self.episode_box.show_all()
 
-            sel.loading(False)
-            
+            pod_row_update.loading(False) 
         
         @expect_call(on_done=show)
         def updating(url):
@@ -158,13 +165,11 @@ class PodcastPageController(Controller):
             podcast_parse(url, podcast)
             return podcast
 
-        url = sel.podcast.url
+        url = pod_row_update.podcast.url
         if is_url(url):
-            sel.loading(True)
-            updating(url)   
-        self.popup.popdown()
+            pod_row_update.loading(True)
+            updating(url)  
         
-
 
 class SearchPageController(Controller):
     def __init__(self, pod_controller):
