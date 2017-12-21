@@ -205,9 +205,7 @@ class Player(Gtk.Box):
 
     def on_mouse_release(self, *b):
         self.changing_time_label.set_text('')
-        self.player.pause()
         self.player.set_time(int(self.duration*self.adjustment.get_value()/100))
-        self.player.play()
         self.mouse_moving = False
 
     def on_adjustment_changed(self, adjustment):

@@ -87,7 +87,6 @@ def populate_episodes(entries, podcast):
     podcast.add_episodes(episodes)
 
 
-# @expect
 def podcast_parse(url, podcast):
     response = feedparser.parse(url)
 
