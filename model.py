@@ -1,6 +1,6 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import enum, time, os
-import vlc
+from AudioStreamer import AudioStreamer
 from requests import file_request
 
 def check_create_folder(path):
@@ -194,9 +194,7 @@ class Player(Gtk.Box):
 
         self.player_state = PlayerState.STOPPED
 
-        self.instance = vlc.Instance()
-        self.player = self.instance.media_player_new()
-        self.media = None
+        self.player = AudioStreamer()      
 
         self.timeout_id = GObject.timeout_add(1000, self.on_timeout, None)
 
@@ -207,7 +205,9 @@ class Player(Gtk.Box):
 
     def on_mouse_release(self, *b):
         self.changing_time_label.set_text('')
+        self.player.pause()
         self.player.set_time(int(self.duration*self.adjustment.get_value()/100))
+        self.player.play()
         self.mouse_moving = False
 
     def on_adjustment_changed(self, adjustment):
@@ -230,22 +230,18 @@ class Player(Gtk.Box):
         if self.player_state == PlayerState.STOPPED:
             self.player.play()
         elif self.player_state == PlayerState.PAUSED:
-            self.player.set_pause(0)
+            self.player.play()
             self.player_state = PlayerState.PLAYING
             button.set_image(self.pause_img)
         else:
             self.player_state = PlayerState.PAUSED
             button.set_image(self.play_img)
-            self.player.set_pause(1)
+            self.player.pause()
 
     def new_link(self, url):
-        try:
-            self.stop_action(None)
-            self.media = self.instance.media_new(url)
-            self.player.set_media(self.media)
-        except:
-            self.media = None
-
+        self.stop_action(None)
+        self.player.new_uri(url)
+        
     def parse_millisecond(self, ms):
         if isinstance(ms, int):
             s = ms / 1000
@@ -253,7 +249,7 @@ class Player(Gtk.Box):
             minutes = (s % 3600) // 60
             seconds = (s % 3600) % 60
 
-            return '{:02.0f}:{:02.0f}:{:02.2f}'.format(hours, minutes, seconds)
+            return '{:02.0f}:{:02.0f}:{:05.2f}'.format(hours, minutes, seconds)
         return '00:00:00.00'
 
     def set_track_text(self, text):
@@ -266,12 +262,11 @@ class Player(Gtk.Box):
             self.current_time_label.set_text(current_str)
             if not self.mouse_moving:
                 self.adjustment.set_value(100*current / self.duration)
-
-        elif self.player.is_playing():
+        elif self.player.is_playing() and self.player_state != PlayerState.PAUSED:
             self.player_state = PlayerState.PLAYING
             self.play_pause_button.set_image(self.pause_img)
 
-            self.duration = self.player.get_length()
+            self.duration = self.player.get_duration()
             self.duration_str = self.parse_millisecond(self.duration)
             self.total_time_label.set_text(self.duration_str)
             self.progress.set_sensitive(True)
