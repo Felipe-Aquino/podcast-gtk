@@ -28,7 +28,7 @@ class PodcastDB():
     def get_podcast_id(self, podcast):
         self.cursor.execute('SELECT id FROM podcasts WHERE name=:name and url=:url',{'name': podcast.name, 'url':podcast.url})
         ids = self.cursor.fetchall()
-        return ids[0] if ids else None
+        podcast.id = ids[0][0] if ids and ids[0] else None
 
     def fetch_pocasts(self):
         self.cursor.execute('SELECT id, name, summary, date, url, image FROM podcasts')

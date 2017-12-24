@@ -2,17 +2,13 @@ from abc import ABC, abstractmethod
 import re, os
 
 from gi.repository import Gtk, Gdk, GObject
-from model import Podcast, PodcastRow, Episode, EpisodeRow, Player
+from model import check_create_folder, Podcast, PodcastRow, Episode, EpisodeRow, Player
 from api import podcast_parse, is_url, expect_call, SearchFile
 from requests import file_request
 from database import PodcastDB
 
 SEARCH_FILE_NAME = 'temp/searched.json'
-
-
-def check_create_folder(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+ITUNES_URL = 'https://itunes.apple.com/search?term={}&media=podcast'
 
 
 class Controller(ABC):
@@ -67,9 +63,9 @@ class PodcastPageController(Controller):
             podcast.status.set_trigger(self.update_list, podcast)
             podcast_parse(url, podcast)
             self.database.insert_podcast(podcast)
-            pod_id = self.database.get_podcast_id(podcast)
-            if pod_id:
-                self.database.insert_episodes(pod_id[0], podcast.episodes)
+            self.database.get_podcast_id(podcast)
+            if podcast.id:
+                self.database.insert_episodes(podcast.id, podcast.episodes)
 
     def add_podcast(self, button):
         url = self.podcast_entry.get_text()
@@ -89,8 +85,7 @@ class PodcastPageController(Controller):
             for e in self.episode_box:
                 self.episode_box.remove(e)
 
-            pod_id = self.database.get_podcast_id(row.podcast)
-            for ep in self.database.fetch_episodes(pod_id[0], 50):
+            for ep in self.database.fetch_episodes(row.podcast.id, 50):
                 e = Episode.from_tuple(ep)
                 self.episode_box.add(EpisodeRow(e))
 
@@ -99,10 +94,8 @@ class PodcastPageController(Controller):
     def on_load(self):
         try:
             for pod in self.database.fetch_pocasts():
-                episodes = self.database.fetch_episodes(pod[0], 50)
                 p = Podcast.from_tuple(pod[1:])
-                p.add_episodes([Episode.from_tuple(e) for e in episodes])
-
+                p.id = pod[0]
                 self.podcast_box.add(PodcastRow(p))
 
         except BaseException as e:
@@ -120,8 +113,7 @@ class PodcastPageController(Controller):
 
     def on_delete_podcast(self, button):
         if self.pod_row_selected != None:
-            pod_id = self.database.get_podcast_id(self.pod_row_selected.podcast)
-            self.database.delete_podcast(pod_id[0])
+            self.database.delete_podcast(self.pod_row_selected.podcast.id)
             self.podcast_box.remove(self.pod_row_selected)
             self.pod_row_selected = None
 
@@ -143,11 +135,10 @@ class PodcastPageController(Controller):
         def show(result, error):
             if not error:
                 podcast = result
-                pod_id = self.database.get_podcast_id(pod_row_update.podcast)
-                self.database.insert_new_episodes(pod_id[0], podcast.episodes)
+                self.database.insert_new_episodes(pod_row_update.podcast.id, podcast.episodes)
                 
                 if self.pod_row_selected == pod_row_update:
-                    episodes = self.database.fetch_episodes(pod_id[0], 50)
+                    episodes = self.database.fetch_episodes(pod_row_update.podcast.id, 50)
                     for e in self.episode_box:
                         self.episode_box.remove(e)
 
@@ -191,7 +182,7 @@ class SearchPageController(Controller):
         text = text.lower()
         text = regex.sub('+', text)
 
-        itunes_url = 'https://itunes.apple.com/search?term={}&media=podcast'.format(text)
+        itunes_url = ITUNES_URL.format(text)
 
         def updating_list(results, error):
             if not error:

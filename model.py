@@ -74,10 +74,6 @@ class Episode():
         }
 
     @staticmethod
-    def from_dict(d):
-        return Episode(d['name'], d['date'], d['link'], d['duration'])
-
-    @staticmethod
     def from_tuple(t):
         return Episode(*t)
 
@@ -96,6 +92,7 @@ class EpisodeRow(Gtk.ListBoxRow):
 
 class Podcast():
     def __init__(self, name, summary, date, url='', image='images/question-mark.jpg'):
+        self.id = 0
         self.name = name
         self.summary = summary
         self.date = date
@@ -116,12 +113,6 @@ class Podcast():
             'image': self.image,
             'episodes': [e.to_dict() for e in self.episodes]
         }
-
-    @staticmethod
-    def from_dict(d):
-        p = Podcast(d['name'], d['summary'], d['date'], d['url'], d['image'])
-        p.add_episodes([Episode.from_dict(e) for e in d['episodes']])
-        return p
 
     @staticmethod
     def from_tuple(t):
