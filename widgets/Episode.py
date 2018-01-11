@@ -1,4 +1,4 @@
-from gi.repository import Gtk, Gdk, GdkPixbuf
+from gi.repository import Gtk, Gdk, Pango
 from font import Font, FontWeight
 import time, enum
 
@@ -36,9 +36,17 @@ class EpisodeRow(Gtk.ListBoxRow):
     def __init__(self, episode):
         super(EpisodeRow, self).__init__()
         
+        font = Font()
+        font.set_size(11)
+        font.set_weight(FontWeight.BOLD)
+
         name = Gtk.Label(episode.name, xalign=0)
+        name.modify_font(font.to_pango_desc())
+        name.set_ellipsize(Pango.EllipsizeMode.END)
+
         date = Gtk.Label(episode.date, xalign=1)
-        
+        date.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse('#1530FF'))
+
         hbox = Gtk.HBox(spacing=6)
         hbox.pack_start(name, True, True, 0)
         hbox.pack_start(date, False, True, 0)

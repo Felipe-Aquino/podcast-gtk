@@ -4,7 +4,8 @@ import re, os
 from gi.repository import Gtk, Gdk, GObject
 from widgets.Podcast import Podcast, PodcastRow
 from widgets.Episode import Episode, EpisodeRow
-from model import check_create_folder,  Player
+from widgets.Player import Player
+from model import check_create_folder
 from api import podcast_parse, is_url, expect_call, SearchFile
 from requests import file_request
 from database import PodcastDB

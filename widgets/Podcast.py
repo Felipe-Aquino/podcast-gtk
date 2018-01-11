@@ -90,7 +90,6 @@ class PodcastRow(Gtk.ListBoxRow):
         font.set_weight(FontWeight.BOLD)
         name = Gtk.Label(podcast.name, xalign=0, yalign=0)
         name.modify_font(font.to_pango_desc())
-        #name.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse('#FF0000'))
 
         revbox = Gtk.HBox(spacing=0)
         revbox.pack_start(self.load_revealer, False, True, 0)
