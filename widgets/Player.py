@@ -1,11 +1,7 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
-import enum, os
+import enum
 from AudioStreamer import AudioStreamer
 from font import Font
-
-def check_create_folder(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
 
 
 def get_gtk_image_from_file(filename, width=75, height=75, keep_ratio=True):

@@ -1,6 +1,8 @@
 import time, threading, json
 import feedparser
-from model import Podcast, Episode, SearchItem
+from widgets.Podcast import Podcast
+from widgets.Episode import Episode
+from widgets.SearchItem import SearchItem 
 from requests import file_request
 import validators
 from gi.repository import GObject
