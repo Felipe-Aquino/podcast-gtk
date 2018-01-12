@@ -1,42 +1,64 @@
-from abc import ABC, abstractmethod
 import re, os
 
-from gi.repository import Gtk, Gdk, GObject
+from gi.repository import Gtk
 from widgets.Podcast import Podcast, PodcastRow
 from widgets.Episode import Episode, EpisodeRow
 from widgets.Player import Player
-from model import check_create_folder
-from api import podcast_parse, is_url, expect_call, SearchFile
-from requests import file_request
+from utils import check_create_folder, create_scrolled_window
+from api import podcast_parse, is_url, expect_call
 from database import PodcastDB
 
-SEARCH_FILE_NAME = 'temp/searched.json'
-ITUNES_URL = 'https://itunes.apple.com/search?term={}&media=podcast'
 
+class PodcastPage(Gtk.VBox):
+    def __init__(self, *args, **kwargs):
+        super(PodcastPage, self).__init__(*args, **kwargs)
+        
+        builder = Gtk.Builder.new_from_file('ui/popup.glade')
+        builder.get_object('update_button').connect('clicked', self.on_update_podcast)
+        builder.get_object('delete_button').connect('clicked', self.on_delete_podcast)
+        self.popup = builder.get_object('popup')
 
-class Controller(ABC):
-    @abstractmethod
-    def get_layout(self):
-        pass
+        self.player = Player()
 
+        self.podcast_entry = Gtk.Entry()
+        self.podcast_entry.set_placeholder_text('Insert a new podcast feed.')
 
-class PodcastPageController(Controller):
-    def __init__(self):
-        builder = Gtk.Builder.new_from_file("ui/main.glade")
-        self.podcast_entry = builder.get_object('podcast_entry')
-        builder.get_object('add_button').connect('clicked', self.add_podcast)
-        builder.get_object('update_button').connect('clicked', self.on_update_all)
+        add_button = Gtk.Button.new_from_stock('gtk-add')
+        add_button.connect('clicked', self.add_podcast)
 
-        builder.get_object('episode_scroll').connect('edge-overshot', self.on_scroll_overshot)
+        update_button = Gtk.Button.new_from_stock('gtk-refresh')
+        update_button.connect('clicked', self.on_update_all)
 
-        self.episode_box = builder.get_object('episode_box')
-        self.episode_box.connect('row-activated', self.on_episode_selected)
-        self.podcast_box = builder.get_object('podcast_box')
+        self.podcast_box = Gtk.ListBox()
         self.podcast_box.connect('row-activated', self.on_podcast_selected)
 
-        self.main_box = builder.get_object('main_box')
-        self.player = Player()
-        self.main_box.pack_start(self.player, False, False, 0)
+        podcast_sw = create_scrolled_window(self.podcast_box)
+
+        self.episode_box = Gtk.ListBox()
+        self.episode_box.connect('row-activated', self.on_episode_selected)
+
+        self.episode_scroll = create_scrolled_window(self.episode_box)
+        self.episode_scroll.connect('edge-overshot', self.on_scroll_overshot)
+
+        pod_hbox = Gtk.HBox()
+        pod_hbox.pack_start(self.podcast_entry, True, True, 0)
+        pod_hbox.pack_start(add_button        , False, True, 0)
+        pod_hbox.pack_start(update_button     , False, True, 0)
+
+        pod_vbox = Gtk.VBox()
+        pod_vbox.pack_start(pod_hbox  , False, True, 0)
+        pod_vbox.pack_start(podcast_sw, True, True, 0)
+
+        ep_vbox = Gtk.VBox()
+        ep_vbox.pack_start(Gtk.Label('Episodes'), False, True, 5)
+        ep_vbox.pack_start(self.episode_scroll  , True, True, 0)
+
+        hbox = Gtk.HBox()
+        hbox.pack_start(pod_vbox   , False, True, 3)
+        hbox.pack_start(ep_vbox    , True, True, 3)
+
+        self.pack_start(hbox       , True, True, 0)
+        self.pack_start(self.player, False, False, 0)
 
         check_create_folder('./temp')
         self.database = PodcastDB()
@@ -44,13 +66,7 @@ class PodcastPageController(Controller):
 
         self.pod_row_selected = None
 
-        builder = Gtk.Builder.new_from_file('ui/popup.glade')
-        builder.get_object('update_button').connect('clicked', self.on_update_podcast)
-        builder.get_object('delete_button').connect('clicked', self.on_delete_podcast)
-        self.popup = builder.get_object('popup')
-
-    def get_layout(self):
-        return self.main_box
+        self.connect("button-press-event", self.on_mouse_press)
 
     def on_scroll_overshot(self, scroll_window, pos, *data):
         if pos == Gtk.PositionType.BOTTOM and self.pod_row_selected != None:
@@ -85,7 +101,7 @@ class PodcastPageController(Controller):
         if self.pod_row_selected != row:
             self.pod_row_selected = row
 
-            for e in self.episode_box:
+            for e in self.episode_box.get_children():
                 self.episode_box.remove(e)
 
             for ep in self.database.fetch_episodes(row.podcast.id, 50):
@@ -120,7 +136,7 @@ class PodcastPageController(Controller):
             self.podcast_box.remove(self.pod_row_selected)
             self.pod_row_selected = None
 
-            for e in self.episode_box:
+            for e in self.episode_box.get_children():
                 self.episode_box.remove(e)
 
             self.player.set_track_text('')
@@ -131,7 +147,7 @@ class PodcastPageController(Controller):
         self.popup.popdown()
         
     def on_update_all(self, button):
-        for row in self.podcast_box:
+        for row in self.podcast_box.get_children():
             self.on_update(row)
 
     def on_update(self, pod_row_update):
@@ -142,7 +158,7 @@ class PodcastPageController(Controller):
                 
                 if self.pod_row_selected == pod_row_update:
                     episodes = self.database.fetch_episodes(pod_row_update.podcast.id, 50)
-                    for e in self.episode_box:
+                    for e in self.episode_box.get_children():
                         self.episode_box.remove(e)
 
                     for ep in episodes:
@@ -163,47 +179,3 @@ class PodcastPageController(Controller):
         if is_url(url):
             pod_row_update.loading(True)
             updating(url)  
-        
-
-class SearchPageController(Controller):
-    def __init__(self, pod_controller):
-        builder = Gtk.Builder.new_from_file('ui/search.glade')
-        self.search_box = builder.get_object('search')
-        self.podcast_entry = builder.get_object('podcast_entry')
-        self.podcast_entry.connect('activate', self.on_find)
-        self.search_list_box = builder.get_object('search_list_box')
-        self.spinner = builder.get_object('spinner_revealer')
-        self.sp = builder.get_object('spinner')
-
-        self.pod_controller = pod_controller
-
-    def on_find(self, button):
-        self.spinner.set_reveal_child(True)
-        text = str(self.podcast_entry.get_text())
-
-        regex = re.compile('\s+')
-        text = text.lower()
-        text = regex.sub('+', text)
-
-        itunes_url = ITUNES_URL.format(text)
-
-        def updating_list(results, error):
-            if not error:
-                for row in self.search_list_box:
-                    self.search_list_box.remove(row)
-                for r in results:
-                    r.link_add_action(self.pod_controller.add_podcast_from_url)
-                    self.search_list_box.add(r)
-                self.search_list_box.show_all()
-            self.spinner.set_reveal_child(False)
-
-        @expect_call(on_done=updating_list)
-        def requesting():
-            file_request(itunes_url, SEARCH_FILE_NAME)
-            file = SearchFile(SEARCH_FILE_NAME)
-            return file.read()
-
-        requesting()
-        
-    def get_layout(self):
-        return self.search_box

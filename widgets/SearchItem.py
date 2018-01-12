@@ -1,11 +1,7 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf
 import time, os
 from font import Font, FontWeight
-from requests import file_request
-
-def check_create_folder(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
+from utils import file_request, check_create_folder
 
 
 class SearchItem(Gtk.ListBoxRow):

@@ -3,7 +3,7 @@ import feedparser
 from widgets.Podcast import Podcast
 from widgets.Episode import Episode
 from widgets.SearchItem import SearchItem 
-from requests import file_request
+from utils import file_request
 import validators
 from gi.repository import GObject
 

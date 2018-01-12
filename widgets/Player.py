@@ -2,14 +2,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 import enum
 from AudioStreamer import AudioStreamer
 from font import Font
-
-
-def get_gtk_image_from_file(filename, width=75, height=75, keep_ratio=True):
-    img = Gtk.Image()
-    pixbuf = GdkPixbuf.Pixbuf().new_from_file_at_scale(
-        filename, width, height, keep_ratio)
-    img.set_from_pixbuf(pixbuf)
-    return img
+from utils import get_gtk_image_from_file
 
 
 class PlayerState(enum.Enum):

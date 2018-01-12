@@ -3,7 +3,8 @@ import sys
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
-from controllers import PodcastPageController, SearchPageController
+from widgets.PodcastPage import PodcastPage
+from widgets.SearchPage import SearchPage
 
 
 class AppWin(Gtk.ApplicationWindow):
@@ -14,34 +15,34 @@ class AppWin(Gtk.ApplicationWindow):
         self.set_position(Gtk.WindowPosition.CENTER)
         #self.maximize()
 
-        self.connect("button-press-event", self.on_mouse_button_press)
-
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
         hb.props.title = "Podcast"
         self.set_titlebar(hb)
 
-        self.podcast_controller = PodcastPageController()
-        self.search_controller = SearchPageController(self.podcast_controller)
+        self.podcast_controller = PodcastPage()
+        self.search_controller = SearchPage(self.podcast_controller)
 
         stack = Gtk.Stack()
         stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         stack.set_transition_duration(500)
 
-        stack.add_titled(self.podcast_controller.get_layout(), "podcasts", "Podcasts")
-        stack.add_titled(self.search_controller.get_layout(), "search", "Search")
+        stack.add_titled(self.podcast_controller, "podcasts", "Podcasts")
+        stack.add_titled(self.search_controller, "search", "Search")
 
         stack_switcher = Gtk.StackSwitcher()
         stack_switcher.set_stack(stack)
         stack_switcher.set_halign(Gtk.Align.CENTER)
-
+        
         hb.pack_start(stack_switcher)
         self.add(stack)
 
         self.show_all()
+        stack.set_visible_child_name('podcasts')
 
     def on_mouse_button_press(self, w, e):
         self.podcast_controller.on_mouse_press(w, e)
+
 
 class App(Gtk.Application):
     def __init__(self, *args, **kwargs):

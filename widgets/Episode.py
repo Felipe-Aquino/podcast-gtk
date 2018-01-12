@@ -3,9 +3,9 @@ from font import Font, FontWeight
 import time, enum
 
 class EpisodeStatus(enum.Enum):
-    STOPPED = 'STOPPED'
-    PLAYING = 'PLAYING'
-    PAUSED = 'PAUSED'
+    STOPPED = 0
+    PLAYING = 1
+    PAUSED = 2
 
 class Episode():
     def __init__(self, name, date, link="", duration="0:00:00"):
