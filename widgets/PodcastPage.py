@@ -12,11 +12,6 @@ from database import PodcastDB
 class PodcastPage(Gtk.VBox):
     def __init__(self, *args, **kwargs):
         super(PodcastPage, self).__init__(*args, **kwargs)
-        
-        builder = Gtk.Builder.new_from_file('ui/popup.glade')
-        builder.get_object('update_button').connect('clicked', self.on_update_podcast)
-        builder.get_object('delete_button').connect('clicked', self.on_delete_podcast)
-        self.popup = builder.get_object('popup')
 
         self.player = Player()
 
@@ -66,8 +61,6 @@ class PodcastPage(Gtk.VBox):
 
         self.pod_row_selected = None
 
-        self.connect("button-press-event", self.on_mouse_press)
-
     def on_scroll_overshot(self, scroll_window, pos, *data):
         if pos == Gtk.PositionType.BOTTOM and self.pod_row_selected != None:
             for ep in self.database.fetch_more(50):
@@ -99,7 +92,15 @@ class PodcastPage(Gtk.VBox):
 
     def on_podcast_selected(self, widget, row):
         if self.pod_row_selected != row:
+            if self.pod_row_selected:
+                self.pod_row_selected.reveal_buttons(False)
+            
             self.pod_row_selected = row
+            self.pod_row_selected.reveal_buttons(True)
+            if not row.buttonsConnected:
+                row.remove.connect('clicked', self.on_delete_podcast)
+                row.refresh.connect('clicked', self.on_update_podcast)
+                row.buttonsConnected = True
 
             for e in self.episode_box.get_children():
                 self.episode_box.remove(e)
@@ -125,11 +126,6 @@ class PodcastPage(Gtk.VBox):
         text = self.pod_row_selected.podcast.name + ' > ' + row.episode.name
         self.player.set_track_text(text)
 
-    def on_mouse_press(self, w, e):
-        if e.button == 3 and self.pod_row_selected != None:
-            self.popup.set_relative_to(self.pod_row_selected.get_child())
-            self.popup.popup()
-
     def on_delete_podcast(self, button):
         if self.pod_row_selected != None:
             self.database.delete_podcast(self.pod_row_selected.podcast.id)
@@ -144,7 +140,6 @@ class PodcastPage(Gtk.VBox):
     def on_update_podcast(self, button):
         sel = self.pod_row_selected
         self.on_update(sel)   
-        self.popup.popdown()
         
     def on_update_all(self, button):
         for row in self.podcast_box.get_children():

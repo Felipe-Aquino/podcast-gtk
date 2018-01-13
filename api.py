@@ -45,7 +45,7 @@ def get_date(feed_dict):
     elif 'pubDate' in feed_dict:
         date = feed_dict['pubDate']
 
-    return time.strftime("%a, %d %b %Y %H:%M:%S", date)
+    return time.strftime("%d %b %Y %H:%M:%S", date)
 
 
 def get_link(feed_dict):

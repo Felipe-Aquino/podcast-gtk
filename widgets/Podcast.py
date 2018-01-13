@@ -1,6 +1,7 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, Pango
 import enum
 from font import Font, FontWeight
+from utils import get_gtk_image_from_file
 
 
 DEFAULT_COVER = 'images/question-mark.jpg'
@@ -80,6 +81,28 @@ class Podcast():
 class PodcastRow(Gtk.ListBoxRow):
     def __init__(self, podcast):
         super(PodcastRow, self).__init__()
+        self.remove_img = get_gtk_image_from_file('./icons/delete.png', 12, 12)
+        self.refresh_img = get_gtk_image_from_file('./icons/update.png', 12, 12)
+
+        self.refresh = Gtk.Button()
+        self.refresh.set_image(self.refresh_img)
+        self.refresh.set_relief(Gtk.ReliefStyle.NONE)
+        
+        self.remove = Gtk.Button()
+        self.remove.set_image(self.remove_img)
+        self.remove.set_relief(Gtk.ReliefStyle.NONE)
+
+        hbox1 = Gtk.HBox()
+        hbox1.pack_start(self.refresh, False, True, 0) 
+        hbox1.pack_start(self.remove , False, True, 0) 
+        
+        self.box_revealer = Gtk.Revealer()
+        self.box_revealer.add(hbox1)
+        self.box_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE)
+
+        hbox2 = Gtk.HBox(spacing=6)
+        hbox2.pack_start(Gtk.Label(podcast.date, xalign=0), True, True, 0) 
+        hbox2.pack_start(self.box_revealer, True, True, 0) 
 
         self.spinner = Gtk.Spinner()
         self.load_revealer = Gtk.Revealer.new()
@@ -108,13 +131,14 @@ class PodcastRow(Gtk.ListBoxRow):
 
         grid = Gtk.Grid()
         grid.set_column_spacing(6)
-        grid.attach(image, 0, 0, 1, 3)
-        grid.attach(child=revbox, left = 1, top = 0, width = 1, height = 1)
+        grid.attach(image   , 0, 0, 1, 3)
+        grid.attach(revbox  , 1, 0, 1, 1)
         grid.attach(expander, 1, 1, 1, 1)
-        grid.attach(Gtk.Label(podcast.date, xalign=0), 1, 2, 1, 1)
+        grid.attach(hbox2, 1, 2, 1, 1)
         
         self.add(grid)
         self.podcast = podcast
+        self.buttonsConnected = False
 
     def loading(self, b):
         self.load_revealer.set_reveal_child(b)
@@ -122,3 +146,6 @@ class PodcastRow(Gtk.ListBoxRow):
             self.spinner.start()
         else:
             self.spinner.stop()
+
+    def reveal_buttons(self, b):
+        self.box_revealer.set_reveal_child(b)
