@@ -3,17 +3,16 @@ import re, os
 from gi.repository import Gtk
 from widgets.Podcast import Podcast, PodcastRow
 from widgets.Episode import Episode, EpisodeRow
-from widgets.Player import Player
 from utils import check_create_folder, create_scrolled_window
 from api import podcast_parse, is_url, expect_call
 from database import PodcastDB
 
 
-class PodcastPage(Gtk.VBox):
-    def __init__(self, *args, **kwargs):
+class PodcastPage(Gtk.HBox):
+    def __init__(self, player, *args, **kwargs):
         super(PodcastPage, self).__init__(*args, **kwargs)
 
-        self.player = Player()
+        self.player = player
 
         self.podcast_entry = Gtk.Entry()
         self.podcast_entry.set_placeholder_text('Insert a new podcast feed.')
@@ -48,12 +47,8 @@ class PodcastPage(Gtk.VBox):
         ep_vbox.pack_start(Gtk.Label('Episodes'), False, True, 5)
         ep_vbox.pack_start(self.episode_scroll  , True, True, 0)
 
-        hbox = Gtk.HBox()
-        hbox.pack_start(pod_vbox   , False, True, 3)
-        hbox.pack_start(ep_vbox    , True, True, 3)
-
-        self.pack_start(hbox       , True, True, 0)
-        self.pack_start(self.player, False, False, 0)
+        self.pack_start(pod_vbox   , False, True, 3)
+        self.pack_start(ep_vbox    , True, True, 3)
 
         check_create_folder('./temp')
         self.database = PodcastDB()

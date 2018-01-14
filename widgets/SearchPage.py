@@ -9,7 +9,7 @@ ITUNES_URL = 'https://itunes.apple.com/search?term={}&media=podcast'
 
 
 class SearchPage(Gtk.VBox):
-    def __init__(self, pod_controller, *args, **kwargs):
+    def __init__(self, podcast_page, *args, **kwargs):
         super(SearchPage, self).__init__(*args, **kwargs)
 
         self.podcast_entry = Gtk.Entry()
@@ -34,7 +34,7 @@ class SearchPage(Gtk.VBox):
         self.pack_start(hbox     , False, True, 0)
         self.pack_start(search_sw, True, True, 0)
 
-        self.pod_controller = pod_controller
+        self.podcast_page = podcast_page
 
     def on_find(self, button):
         self.spinner_rev.set_reveal_child(True)
@@ -51,7 +51,7 @@ class SearchPage(Gtk.VBox):
                 for row in self.search_list_box.get_children():
                     self.search_list_box.remove(row)
                 for r in results:
-                    r.link_add_action(self.pod_controller.add_podcast_from_url)
+                    r.link_add_action(self.podcast_page.add_podcast_from_url)
                     self.search_list_box.add(r)
                 self.search_list_box.show_all()
             self.spinner_rev.set_reveal_child(False)
