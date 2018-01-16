@@ -1,7 +1,7 @@
 # podcast-gtk
 Just a podcast client.
 
-![Demonstration](https://github.com/Felipe-Aquino/podcast-gtk/blob/master/demonstration.gif)
+![Demonstration](https://github.com/Felipe-Aquino/podcast-gtk/blob/master/demonstration.png)
 
 ## About
 Is an application capable of search, register, save and play your podcasts, once known its feeds or name.
