@@ -42,4 +42,5 @@ class EpisodeInfo(Gtk.Frame):
         grid.attach(scrolled        , 0, 3, 2, 1)
 
         self.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('#252525'))
+        self.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse('#ffffff'))
         self.add(grid)
