@@ -3,6 +3,7 @@ import re, os
 from gi.repository import Gtk
 from widgets.Podcast import Podcast, PodcastRow
 from widgets.Episode import Episode, EpisodeRow
+from widgets.EpisodeInfo import EpisodeInfo
 from utils import check_create_folder, create_scrolled_window
 from api import podcast_parse, is_url, expect_call
 from database import PodcastDB
@@ -34,6 +35,10 @@ class PodcastPage(Gtk.HBox):
         self.episode_scroll = create_scrolled_window(self.episode_box)
         self.episode_scroll.connect('edge-overshot', self.on_scroll_overshot)
 
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.VERTICAL)
+        self.paned.set_position(300)
+        self.paned.add1(self.episode_scroll)
+
         pod_hbox = Gtk.HBox()
         pod_hbox.pack_start(self.podcast_entry, True, True, 0)
         pod_hbox.pack_start(add_button        , False, True, 0)
@@ -45,7 +50,7 @@ class PodcastPage(Gtk.HBox):
 
         ep_vbox = Gtk.VBox()
         ep_vbox.pack_start(Gtk.Label('Episodes'), False, True, 5)
-        ep_vbox.pack_start(self.episode_scroll  , True, True, 0)
+        ep_vbox.pack_start(self.paned  , True, True, 0)
 
         self.pack_start(pod_vbox   , False, True, 3)
         self.pack_start(ep_vbox    , True, True, 3)
@@ -55,6 +60,8 @@ class PodcastPage(Gtk.HBox):
         self.on_load()
 
         self.pod_row_selected = None
+        self.ep_selected_link = None
+        self.episode_info = None
 
     def on_scroll_overshot(self, scroll_window, pos, *data):
         if pos == Gtk.PositionType.BOTTOM and self.pod_row_selected != None:
@@ -117,9 +124,21 @@ class PodcastPage(Gtk.HBox):
             print('Exception', e)
 
     def on_episode_selected(self, widget, row):
-        self.player.new_link(row.episode.link)
-        text = self.pod_row_selected.podcast.name + ' > ' + row.episode.name
-        self.player.set_track_text(text)
+        def set_play(button):
+            self.player.new_link(row.episode.link)
+            text = self.pod_row_selected.podcast.name + ' > ' + row.episode.name
+            self.player.set_track_text(text)
+            self.player.play_pause_action(None)
+        
+        if self.episode_info:
+            self.paned.remove(self.episode_info)
+        
+        episode = row.episode
+        self.ep_selected_link = episode.link
+        self.episode_info = EpisodeInfo(episode.name, episode.date, episode.summary)
+        self.episode_info.play_button.connect('clicked', set_play)
+        self.paned.add2(self.episode_info)
+        self.paned.show_all()
 
     def on_delete_podcast(self, button):
         if self.pod_row_selected != None:
@@ -129,8 +148,9 @@ class PodcastPage(Gtk.HBox):
 
             for e in self.episode_box.get_children():
                 self.episode_box.remove(e)
-
-            self.player.set_track_text('')
+                if e.episode.link == self.ep_selected_link:
+                    self.ep_selected_link = None
+                    self.paned.remove(self.episode_info)
 
     def on_update_podcast(self, button):
         sel = self.pod_row_selected

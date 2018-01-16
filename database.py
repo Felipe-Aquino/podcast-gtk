@@ -1,5 +1,16 @@
 import sqlite3
 
+PODCAST_INSERT = """
+    INSERT INTO podcasts 
+    (name, summary, date, url, image) VALUES 
+    (:name, :summary, :date, :url, :image)
+"""
+
+EPISODE_INSERT = """
+    INSERT INTO episodes 
+    (name, link, summary, date, duration, podcast_id) VALUES 
+    (:name, :link, :summary, :date, :duration, :podcast_id)
+"""
 
 class PodcastDB():
     def __init__(self):
@@ -19,6 +30,7 @@ class PodcastDB():
             CREATE TABLE IF NOT EXISTS episodes(
                 name TEXT, 
                 link TEXT, 
+                summary TEXT, 
                 date TEXT, 
                 duration TEXT, 
                 podcast_id INTEGER, 
@@ -35,7 +47,7 @@ class PodcastDB():
         return self.cursor.fetchall()
 
     def fetch_episodes(self, podcast_id, number):
-        self.cursor.execute('SELECT name, date, link, duration FROM episodes WHERE podcast_id=(?)', (podcast_id,))
+        self.cursor.execute('SELECT name, date, summary, link, duration FROM episodes WHERE podcast_id=(?)', (podcast_id,))
         return self.cursor.fetchmany(number)
 
     def fetch_more(self, number):
@@ -47,17 +59,13 @@ class PodcastDB():
 
     def insert_podcast(self, podcast):
         with self.conn:
-            self.cursor.execute('''INSERT INTO podcasts 
-                (name, summary, date, url, image) VALUES 
-                (:name, :summary, :date, :url, :image)''', podcast.to_dict())
+            self.cursor.execute(PODCAST_INSERT, podcast.to_dict())
 
     def insert_episode(self, pod_id, episode):
         e = episode.to_dict()
         e['podcast_id'] = pod_id
         with self.conn:
-            self.cursor.execute('''INSERT INTO episodes 
-                (name, link, date, duration, podcast_id) VALUES 
-                (:name, :link, :date, :duration, :podcast_id)''', e)
+            self.cursor.execute(EPISODE_INSERT, e)
 
     def insert_episodes(self, pod_id, episodes):
         eps = []
@@ -67,9 +75,7 @@ class PodcastDB():
             eps.append(d)
 
         with self.conn:
-            self.cursor.executemany('''INSERT INTO episodes 
-            (name, date, link, duration, podcast_id) VALUES 
-            (:name, :date, :link, :duration, :podcast_id)''', eps)
+            self.cursor.executemany(EPISODE_INSERT, eps)
 
     def insert_new_episodes(self, pod_id, episodes):
         eps = []
@@ -81,16 +87,13 @@ class PodcastDB():
         with self.conn:
             self.cursor.execute('''DELETE FROM episodes WHERE podcast_id=(?)''', (pod_id,))       
 
-            self.cursor.executemany('''INSERT INTO episodes 
-                (name, date, link, duration, podcast_id) VALUES 
-                (:name, :date, :link, :duration, :podcast_id)''', eps)
+            self.cursor.executemany(EPISODE_INSERT, eps)
 
 
     def delete_podcast(self, id):
         with self.conn:
             self.cursor.execute('DELETE FROM podcasts WHERE id=(?)', (id,))
-            self.cursor.execute(
-                'DELETE FROM episodes WHERE podcast_id=(?)', (id,))
+            self.cursor.execute('DELETE FROM episodes WHERE podcast_id=(?)', (id,))
 
     def close_all(self):
         self.cursor.close()

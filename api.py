@@ -35,6 +35,14 @@ def expect_call(on_done = lambda r, e: None):
 
 AUDIO_TYPES = ['audio/mpeg', 'audio/x-m4a']
 
+def get_summary(episode_entry):
+    if 'summary' in episode_entry:
+        return episode_entry['summary']
+    elif 'summary_detail' in episode_entry:
+        detail = episode_entry['summary_detail']
+        if 'value' in detail:
+            return detail['value']
+    return 'No summary given!'
 
 def get_date(feed_dict):
     date = time.gmtime()
@@ -81,6 +89,7 @@ def populate_episodes(entries, podcast):
             episodes.append(Episode(
                 name=entry['title'],
                 date=get_date(entry),
+                summary=get_summary(entry),
                 link=get_link(entry),
                 duration=entry['itunes_duration'] if 'itunes_duration' in entry else ''
             ))

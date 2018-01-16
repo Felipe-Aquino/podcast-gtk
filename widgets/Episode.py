@@ -1,31 +1,24 @@
-from gi.repository import Gtk, Gdk, Pango
+from gi.repository import Gtk, Pango
 from font import Font, FontWeight
-import time, enum
+import time
 
-class EpisodeStatus(enum.Enum):
-    STOPPED = 0
-    PLAYING = 1
-    PAUSED = 2
 
 class Episode():
-    def __init__(self, name, date, link="", duration="0:00:00"):
+    def __init__(self, name, date, summary, link="", duration="0:00:00"):
         self.name = name
         self.date = date
+        self.summary = summary
         self.link = link
         self.duration = duration
-        self.state = EpisodeStatus.STOPPED
 
     def to_dict(self):
         return {
             'name': self.name,
+            'summary': self.summary,
             'link': self.link,
             'date': self.date,
             'duration': self.duration
         }
-
-    def to_list(self):
-        date = time.strftime('%d/%b/%Y', self.date)
-        return [self.date, self.name, self.date, self.state]
 
     @staticmethod
     def from_tuple(t):
@@ -44,12 +37,5 @@ class EpisodeRow(Gtk.ListBoxRow):
         name.modify_font(font.to_pango_desc())
         name.set_ellipsize(Pango.EllipsizeMode.END)
 
-        date = Gtk.Label(episode.date, xalign=1)
-        date.modify_fg(Gtk.StateType.NORMAL, Gdk.color_parse('#1530FF'))
-
-        hbox = Gtk.HBox(spacing=6)
-        hbox.pack_start(name, True, True, 0)
-        hbox.pack_start(date, False, True, 0)
-
-        self.add(hbox)
+        self.add(name)
         self.episode = episode
