@@ -1,24 +1,24 @@
 from gi.repository import Gtk, Pango
 from font import Font, FontWeight
-import time
+from utils import parse_date
 
 
 class Episode():
     def __init__(self, name, date, summary, link="", duration="0:00:00"):
         self.name = name
-        self.date = date
+        self.date = parse_date(date)
         self.summary = summary
         self.link = link
         self.duration = duration
 
-    def to_dict(self):
-        return {
-            'name': self.name,
-            'summary': self.summary,
-            'link': self.link,
-            'date': self.date,
-            'duration': self.duration
-        }
+    @staticmethod
+    def from_dict(d):
+        episode = Episode('', 0, '')
+        d.pop('podcast_id')
+        for k, v in d.items():
+            v = parse_date(v) if k == 'date' else v    
+            setattr(episode, k, v)
+        return episode
 
     @staticmethod
     def from_tuple(t):

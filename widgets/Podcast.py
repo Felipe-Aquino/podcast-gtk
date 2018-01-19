@@ -1,77 +1,38 @@
 from gi.repository import Gtk, Gdk, GdkPixbuf, Pango
 import enum
 from font import Font, FontWeight
-from utils import get_gtk_image_from_file
+from utils import get_gtk_image_from_file, parse_date
+from widgets.Episode import Episode
 
 
 DEFAULT_COVER = 'images/question-mark.jpg'
 
 
-class StatusType(enum.Enum):
-    UNKNOWN = 'UNKOWN'
-    ERROR = 'ERROR'
-    SUCCESS = 'SUCCESS'
-
-
-class Status():
-    def __init__(self, trigger=None, *args):
-        self.value = StatusType.UNKNOWN
-        if callable(trigger):
-            self.trigger = trigger
-            self.args = args
-        else:
-            self.trigger = None
-
-    def set_error(self):
-        self.value = StatusType.ERROR
-        if self.trigger:
-            self.trigger(self, *self.args)
-
-    def set_success(self):
-        self.value = StatusType.SUCCESS
-        if self.trigger:
-            self.trigger(self, *self.args)
-
-    def set_trigger(self, trigger, *args):
-        if callable(trigger):
-            self.trigger = trigger
-            self.args = args
-        else:
-            self.trigger = None
-
-    def is_error(self):
-        return self.value == StatusType.ERROR
-
-    def is_success(self):
-        return self.value == StatusType.SUCCESS
-
-    def is_unknown(self):
-        return self.value == StatusType.UNKNOWN
-
-
 class Podcast():
-    def __init__(self, name, summary, date, url='', image=DEFAULT_COVER):
-        self.id = 0
+    def __init__(self, id, name, summary, date, url='', image=DEFAULT_COVER):
+        self.id = id
         self.name = name
         self.summary = summary
-        self.date = date
+        self.date = parse_date(date)
         self.url = url
         self.image = image
         self.episodes = []
-        self.status = Status()
 
     def add_episodes(self, episodes):
         self.episodes.extend(episodes)
 
-    def to_dict(self):
-        return {
-            'name': self.name,
-            'summary': self.summary,
-            'date': self.date,
-            'url': self.url,
-            'image': self.image,
-            'episodes': [e.to_dict() for e in self.episodes]
-        }
+    @staticmethod
+    def from_dict(d):
+        podcast = Podcast(0, '', '', 0)
+        for k, v in d.items():
+            v = parse_date(v) if k == 'date' else v  
+            if k != 'episodes':
+                setattr(podcast, k, v)
+
+        for e in d['episodes']:
+            podcast.episodes.append(Episode.from_dict(e))
+        
+        return podcast
 
     @staticmethod
     def from_tuple(t):

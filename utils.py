@@ -1,6 +1,8 @@
 from gi.repository import Gtk, GdkPixbuf
 from urllib import request
-import shutil, os
+import shutil, os, time
+import validators
+
 
 USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
@@ -35,3 +37,11 @@ def create_scrolled_window(obj):
 
     return scrolled_window
 
+
+def is_url(url):
+    return validators.url(url) == True
+
+
+def parse_date(date):
+    tm = time.localtime(date)
+    return time.strftime("%a, %d %b %Y %H:%M:%S", tm)

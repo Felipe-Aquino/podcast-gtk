@@ -1,10 +1,9 @@
 import time, threading, json
 import feedparser
-from widgets.Podcast import Podcast
+from widgets.Podcast import Podcast, DEFAULT_COVER
 from widgets.Episode import Episode
 from widgets.SearchItem import SearchItem 
 from utils import file_request
-import validators
 from gi.repository import GObject
 
 def expect(fn):
@@ -53,7 +52,7 @@ def get_date(feed_dict):
     elif 'pubDate' in feed_dict:
         date = feed_dict['pubDate']
 
-    return time.strftime("%a, %d %b %Y %H:%M:%S", date)
+    return time.mktime(date)
 
 
 def get_link(feed_dict):
@@ -66,61 +65,48 @@ def get_link(feed_dict):
     return link
 
 
-def set_image_from_feed(feed, podcast):
-    default_image = './images/question-mark.jpg'
-
+def get_image_from_feed(feed):
     try:
         image_url = feed['image']['href']
         extension = image_url[-3:]
         if extension in ['jpg', 'jpeg', 'png']:
-            podcast.image = './images/' + \
-                feed['title'].lower() + '.' + extension
-            file_request(image_url, podcast.image)
-        else:
-            podcast.image = default_image
+            image = './images/' + feed['title'].lower() + '.' + extension
+            file_request(image_url, image)
+            return image
     except:
-        podcast.image = default_image
+        pass
 
+    return DEFAULT_COVER
 
-def populate_episodes(entries, podcast):
+def extract_episodes(entries):
     episodes = []
     for entry in entries:
         if entry:
-            episodes.append(Episode(
-                name=entry['title'],
-                date=get_date(entry),
-                summary=get_summary(entry),
-                link=get_link(entry),
-                duration=entry['itunes_duration'] if 'itunes_duration' in entry else ''
-            ))
-        
-    podcast.episodes = []
-    podcast.add_episodes(episodes)
+            episodes.append({
+                'name': entry['title'],
+                'date': get_date(entry),
+                'summary': get_summary(entry),
+                'link': get_link(entry),
+                'duration': entry['itunes_duration'] if 'itunes_duration' in entry else ''
+            })
+    
+    return episodes
 
-
-def podcast_parse(url, podcast):
+def save_podcast(url):
     response = feedparser.parse(url)
 
     if response:
         feed = response['feed']
-        podcast.name = feed['title']
-        summary = feed['summary'] if 'summary' in feed else feed['title']
-        podcast.summary = summary
-        podcast.date = get_date(feed)
-        podcast.url = url
-
-        set_image_from_feed(feed, podcast)
-
-        entries = response['entries']
-        populate_episodes(entries, podcast)
-
-        podcast.status.set_success()
-    else:
-        podcast.status.set_error()
-
-
-def is_url(url):
-    return validators.url(url) == True
+        podcast = {}
+        podcast['name'] = feed['title']
+        podcast['summary'] = feed['summary'] if 'summary' in feed else feed['title']
+        podcast['date'] = get_date(feed)
+        podcast['url'] = url
+        podcast['image'] = get_image_from_feed(feed)
+        podcast['episodes'] = extract_episodes(response['entries'])
+        return podcast
+    
+    return {}
 
 
 class SearchFile:

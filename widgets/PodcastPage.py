@@ -1,11 +1,11 @@
 import re, os
 
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 from widgets.Podcast import Podcast, PodcastRow
 from widgets.Episode import Episode, EpisodeRow
 from widgets.EpisodeInfo import EpisodeInfo
-from utils import check_create_folder, create_scrolled_window
-from api import podcast_parse, is_url, expect_call
+from utils import check_create_folder, create_scrolled_window, is_url
+from api import save_podcast, expect_call
 from database import PodcastDB
 
 
@@ -23,6 +23,14 @@ class PodcastPage(Gtk.HBox):
 
         update_button = Gtk.Button.new_from_stock('gtk-refresh')
         update_button.connect('clicked', self.on_update_all)
+
+        episodes = Gtk.Label('Episodes')
+        all_button = Gtk.Button('All')
+        all_button.connect('clicked', self.all_button_pressed)
+
+        epBox = Gtk.HBox()
+        epBox.pack_start(episodes  , True, True, 0)
+        epBox.pack_start(all_button, False, False, 0)
 
         self.podcast_box = Gtk.ListBox()
         self.podcast_box.connect('row-activated', self.on_podcast_selected)
@@ -49,7 +57,7 @@ class PodcastPage(Gtk.HBox):
         pod_vbox.pack_start(podcast_sw, True, True, 0)
 
         ep_vbox = Gtk.VBox()
-        ep_vbox.pack_start(Gtk.Label('Episodes'), False, True, 5)
+        ep_vbox.pack_start(epBox       , False, True, 0)
         ep_vbox.pack_start(self.paned  , True, True, 0)
 
         self.pack_start(pod_vbox   , False, True, 3)
@@ -57,6 +65,7 @@ class PodcastPage(Gtk.HBox):
 
         check_create_folder('./temp')
         self.database = PodcastDB()
+
         self.on_load()
 
         self.pod_row_selected = None
@@ -64,7 +73,7 @@ class PodcastPage(Gtk.HBox):
         self.episode_info = None
 
     def on_scroll_overshot(self, scroll_window, pos, *data):
-        if pos == Gtk.PositionType.BOTTOM and self.pod_row_selected != None:
+        if pos == Gtk.PositionType.BOTTOM:
             for ep in self.database.fetch_more(50):
                 e = Episode.from_tuple(ep)
                 self.episode_box.add(EpisodeRow(e))
@@ -73,30 +82,31 @@ class PodcastPage(Gtk.HBox):
 
     def add_podcast_from_url(self, url):
         if is_url(url) and not self.database.check_podcast_url(url):
-            podcast = Podcast('', '', '', '')
-            podcast.status.set_trigger(self.update_list, podcast)
-            podcast_parse(url, podcast)
+            podcast = save_podcast(url)
             self.database.insert_podcast(podcast)
-            self.database.get_podcast_id(podcast)
-            if podcast.id:
-                self.database.insert_episodes(podcast.id, podcast.episodes)
+            pod_id = self.database.get_podcast_id(podcast)
+            if pod_id:
+                podcast['id'] = pod_id
+                self.database.insert_episodes(pod_id, podcast['episodes'])
+            
+            self.update_list(podcast)
 
     def add_podcast(self, button):
         url = self.podcast_entry.get_text()
         self.add_podcast_from_url(url)
 
-    def update_list(self, status, podcast):
-        if status.is_success():
+    def update_list(self, podcast):
+        if podcast:
             self.podcast_entry.set_text('')
-            self.podcast_box.add(PodcastRow(podcast))
-
+            pod = Podcast.from_dict(podcast)
+            self.podcast_box.add(PodcastRow(pod))
             self.podcast_box.show_all()
 
     def on_podcast_selected(self, widget, row):
         if self.pod_row_selected != row:
             if self.pod_row_selected:
                 self.pod_row_selected.reveal_buttons(False)
-            
+
             self.pod_row_selected = row
             self.pod_row_selected.reveal_buttons(True)
             if not row.buttonsConnected:
@@ -114,14 +124,9 @@ class PodcastPage(Gtk.HBox):
             self.episode_box.show_all()
 
     def on_load(self):
-        try:
-            for pod in self.database.fetch_pocasts():
-                p = Podcast.from_tuple(pod[1:])
-                p.id = pod[0]
-                self.podcast_box.add(PodcastRow(p))
-
-        except BaseException as e:
-            print('Exception', e)
+        for pod in self.database.fetch_pocasts():
+            p = Podcast.from_tuple(pod)
+            self.podcast_box.add(PodcastRow(p))
 
     def on_episode_selected(self, widget, row):
         def set_play(button):
@@ -129,10 +134,10 @@ class PodcastPage(Gtk.HBox):
             text = self.pod_row_selected.podcast.name + ' > ' + row.episode.name
             self.player.set_track_text(text)
             self.player.play_pause_action(None)
-        
+
         if self.episode_info:
             self.paned.remove(self.episode_info)
-        
+
         episode = row.episode
         self.ep_selected_link = episode.link
         self.episode_info = EpisodeInfo(episode.name, episode.date, episode.summary)
@@ -154,8 +159,8 @@ class PodcastPage(Gtk.HBox):
 
     def on_update_podcast(self, button):
         sel = self.pod_row_selected
-        self.on_update(sel)   
-        
+        self.on_update(sel)
+
     def on_update_all(self, button):
         for row in self.podcast_box.get_children():
             self.on_update(row)
@@ -164,8 +169,8 @@ class PodcastPage(Gtk.HBox):
         def show(result, error):
             if not error:
                 podcast = result
-                self.database.insert_new_episodes(pod_row_update.podcast.id, podcast.episodes)
-                
+                self.database.insert_new_episodes(pod_row_update.podcast.id, podcast['episodes'])
+
                 if self.pod_row_selected == pod_row_update:
                     episodes = self.database.fetch_episodes(pod_row_update.podcast.id, 50)
                     for e in self.episode_box.get_children():
@@ -177,15 +182,27 @@ class PodcastPage(Gtk.HBox):
 
                     self.episode_box.show_all()
 
-            pod_row_update.loading(False) 
-        
+            pod_row_update.loading(False)
+
         @expect_call(on_done=show)
         def updating(url):
-            podcast = Podcast('', '', '', '')
-            podcast_parse(url, podcast)
-            return podcast
-
+            return save_podcast(url)
+            
         url = pod_row_update.podcast.url
         if is_url(url):
             pod_row_update.loading(True)
-            updating(url)  
+            updating(url)
+
+    def all_button_pressed(self, button):
+        if self.pod_row_selected:
+            self.podcast_box.unselect_all() 
+
+        for e in self.episode_box.get_children():
+            self.episode_box.remove(e)
+
+        for ep in self.database.fetch_all_new_episodes(50):
+            e = Episode.from_tuple(ep)
+            self.episode_box.add(EpisodeRow(e))
+
+        self.episode_box.show_all()
+

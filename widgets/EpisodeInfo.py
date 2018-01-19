@@ -29,6 +29,7 @@ class EpisodeInfo(Gtk.Frame):
         summary_info = Gtk.Label(m.markup, hexpand=1)
         summary_info.set_use_markup(True)
         summary_info.set_margin_left(12)
+        summary_info.set_margin_top(6)
         summary_info.set_halign(Gtk.Align.START)
         summary_info.set_line_wrap(True)
 
