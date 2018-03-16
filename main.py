@@ -34,10 +34,10 @@ class AppWin(Gtk.ApplicationWindow):
         stack_switcher = Gtk.StackSwitcher()
         stack_switcher.set_stack(stack)
         stack_switcher.set_halign(Gtk.Align.CENTER)
-        
+
         hb.pack_start(stack_switcher)
 
-        vbox = Gtk.VBox()        
+        vbox = Gtk.VBox()
         vbox.pack_start(stack , True, True, 0)
         vbox.pack_start(player, False, False, 0)
 

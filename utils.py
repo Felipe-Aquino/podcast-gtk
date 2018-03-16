@@ -26,13 +26,13 @@ def get_gtk_image_from_file(filename, width=75, height=75, keep_ratio=True):
     return img
 
 
-def create_scrolled_window(obj):
+def create_scrolled_window(obj, **params):
     viewport = Gtk.Viewport()
     viewport.add(obj)
 
-    scrolled_window = Gtk.ScrolledWindow()
-    scrolled_window.set_propagate_natural_height(True)
-    scrolled_window.set_propagate_natural_width(True)
+    scrolled_window = Gtk.ScrolledWindow(**params)
+    #scrolled_window.set_propagate_natural_height(True)
+    #scrolled_window.set_propagate_natural_width(True)
     scrolled_window.add(viewport)
 
     return scrolled_window

@@ -33,7 +33,7 @@ class EpisodeInfo(Gtk.Frame):
         summary_info.set_halign(Gtk.Align.START)
         summary_info.set_line_wrap(True)
 
-        scrolled = create_scrolled_window(summary_info)
+        scrolled = create_scrolled_window(summary_info, hexpand=True, vexpand=True)
 
         grid = Gtk.Grid()
         grid.attach(episode_name    , 0, 1, 1, 1)
