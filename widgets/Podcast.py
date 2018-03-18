@@ -25,13 +25,13 @@ class Podcast():
     def from_dict(d):
         podcast = Podcast(0, '', '', 0)
         for k, v in d.items():
-            v = parse_date(v) if k == 'date' else v  
+            v = parse_date(v) if k == 'date' else v
             if k != 'episodes':
                 setattr(podcast, k, v)
 
         for e in d['episodes']:
             podcast.episodes.append(Episode.from_dict(e))
-        
+
         return podcast
 
     @staticmethod
@@ -48,22 +48,22 @@ class PodcastRow(Gtk.ListBoxRow):
         self.refresh = Gtk.Button()
         self.refresh.set_image(self.refresh_img)
         self.refresh.set_relief(Gtk.ReliefStyle.NONE)
-        
+
         self.remove = Gtk.Button()
         self.remove.set_image(self.remove_img)
         self.remove.set_relief(Gtk.ReliefStyle.NONE)
 
         hbox1 = Gtk.HBox()
-        hbox1.pack_start(self.refresh, False, True, 0) 
-        hbox1.pack_start(self.remove , False, True, 0) 
-        
+        hbox1.pack_start(self.refresh, False, True, 0)
+        hbox1.pack_start(self.remove , False, True, 0)
+
         self.box_revealer = Gtk.Revealer()
         self.box_revealer.add(hbox1)
         self.box_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE)
 
         hbox2 = Gtk.HBox(spacing=6)
-        hbox2.pack_start(Gtk.Label(podcast.date, xalign=0), True, True, 0) 
-        hbox2.pack_start(self.box_revealer, True, True, 0) 
+        hbox2.pack_start(Gtk.Label(podcast.date, xalign=0), True, True, 0)
+        hbox2.pack_start(self.box_revealer, True, True, 0)
 
         self.spinner = Gtk.Spinner()
         self.load_revealer = Gtk.Revealer.new()

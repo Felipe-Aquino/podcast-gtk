@@ -16,7 +16,7 @@ class Episode():
         episode = Episode('', 0, '')
         d.pop('podcast_id')
         for k, v in d.items():
-            v = parse_date(v) if k == 'date' else v    
+            v = parse_date(v) if k == 'date' else v
             setattr(episode, k, v)
         return episode
 
@@ -28,7 +28,7 @@ class Episode():
 class EpisodeRow(Gtk.ListBoxRow):
     def __init__(self, episode):
         super(EpisodeRow, self).__init__()
-        
+
         font = Font()
         font.set_size(11)
         font.set_weight(FontWeight.BOLD)

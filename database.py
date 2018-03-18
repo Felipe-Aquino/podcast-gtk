@@ -61,6 +61,13 @@ class PodcastDB():
         self.cursor.execute('SELECT id FROM podcasts WHERE url=(?)',(url,))
         return self.cursor.fetchall()
 
+    def insert_podcast_with_episodes(self, podcast):
+        self.insert_podcast(podcast)
+        pod_id = self.get_podcast_id(podcast)
+        if pod_id:
+            podcast['id'] = pod_id
+            self.insert_episodes(pod_id, podcast['episodes'])
+
     def insert_podcast(self, podcast):
         with self.conn:
             self.cursor.execute(PODCAST_INSERT, podcast)

@@ -89,10 +89,10 @@ def extract_episodes(entries):
                 'link': get_link(entry),
                 'duration': entry['itunes_duration'] if 'itunes_duration' in entry else ''
             })
-    
+
     return episodes
 
-def save_podcast(url):
+def rest_podcast(url):
     response = feedparser.parse(url)
 
     if response:
@@ -105,7 +105,7 @@ def save_podcast(url):
         podcast['image'] = get_image_from_feed(feed)
         podcast['episodes'] = extract_episodes(response['entries'])
         return podcast
-    
+
     return {}
 
 
@@ -118,7 +118,7 @@ class SearchFile:
         items = []
         with open(self.file_name, 'r') as file:
             searched = json.load(file)
-    
+
         for s in searched['results']:
             if 'feedUrl' in s:
                 items.append(SearchItem.from_dict(s))
