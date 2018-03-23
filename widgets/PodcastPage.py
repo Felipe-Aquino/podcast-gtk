@@ -175,7 +175,7 @@ class PodcastPage(Gtk.Grid):
 
         @expect_call(on_done=show)
         def updating(url):
-            return save_podcast(url)
+            return rest_podcast(url)
 
         url = pod_row_update.podcast.url
         if is_url(url):
