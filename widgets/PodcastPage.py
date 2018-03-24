@@ -120,7 +120,7 @@ class PodcastPage(Gtk.Grid):
     def on_episode_selected(self, widget, row):
         def set_play(button):
             self.player.new_link(row.episode.link)
-            text = self.pod_row_selected.podcast.name + ' > ' + row.episode.name
+            text = row.episode.name
             self.player.set_track_text(text)
             self.player.play_pause_action(None)
 
