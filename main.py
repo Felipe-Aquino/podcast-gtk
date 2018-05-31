@@ -74,13 +74,14 @@ class App(Gtk.Application):
         self.window.present()
 
     def on_about(self, action, param):
-        about_dialog = Gtk.AboutDialog(transient_for=self.window, modal=True)
+        about_dialog = Gtk.AboutDialog(transient_for = self.window, modal = True)
         about_dialog.set_program_name('Podcast')
         about_dialog.set_license('LICENSE_UNKNOWN')
         about_dialog.set_website_label('GitHub')
         about_dialog.set_website('https://github.com/Felipe-Aquino/podcast-gtk')
         about_dialog.set_authors(['Felipe'])
-        about_dialog.present()
+        about_dialog.run()
+        about_dialog.destroy()
 
     def on_quit(self, action, param):
         self.quit()
