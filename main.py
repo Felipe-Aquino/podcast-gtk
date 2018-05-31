@@ -76,7 +76,7 @@ class App(Gtk.Application):
     def on_about(self, action, param):
         about_dialog = Gtk.AboutDialog(transient_for = self.window, modal = True)
         about_dialog.set_program_name('Podcast')
-        about_dialog.set_license('LICENSE_UNKNOWN')
+        about_dialog.set_license_type(Gtk.License.MIT_X11)
         about_dialog.set_website_label('GitHub')
         about_dialog.set_website('https://github.com/Felipe-Aquino/podcast-gtk')
         about_dialog.set_authors(['Felipe'])

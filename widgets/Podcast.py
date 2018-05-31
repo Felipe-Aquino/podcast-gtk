@@ -68,8 +68,7 @@ class PodcastRow(Gtk.ListBoxRow):
         self.spinner = Gtk.Spinner()
         self.load_revealer = Gtk.Revealer.new()
         self.load_revealer.add(self.spinner)
-        self.load_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE)
-
+        self.load_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_LEFT)
         font = Font()
         font.set_weight(FontWeight.BOLD)
         name = Gtk.Label(podcast.name, xalign=0, yalign=0)
@@ -96,7 +95,7 @@ class PodcastRow(Gtk.ListBoxRow):
         grid.attach(revbox  , 1, 0, 1, 1)
         grid.attach(expander, 1, 1, 1, 1)
         grid.attach(hbox2, 1, 2, 1, 1)
-        
+
         self.add(grid)
         self.podcast = podcast
         self.buttonsConnected = False

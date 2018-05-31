@@ -28,18 +28,18 @@ class Player(Gtk.Grid):
         self.progress.set_draw_value(False)
         self.progress.connect('button-press-event', self.on_mouse_press)
         self.progress.connect('button-release-event', self.on_mouse_release)
-        
+
         font = Font()
         font.set_size(8)
         self.current_time = Gtk.Label('00:00:00.00', xalign=0, xpad=6)
         self.current_time.modify_font(font.to_pango_desc())
-        
+
         self.changing_time = Gtk.Label(' ', xpad=6)
         self.changing_time.modify_font(font.to_pango_desc())
 
         self.total_time = Gtk.Label('00:00:00.00', xalign=1, xpad=6)
         self.total_time.modify_font(font.to_pango_desc())
-        
+
         self.track_label = Gtk.Label(' ')
 
         self.play_pause_button = Gtk.Button()
@@ -66,7 +66,7 @@ class Player(Gtk.Grid):
 
         self.player_state = PlayerState.STOPPED
 
-        self.player = AudioStreamer()      
+        self.player = AudioStreamer()
 
         self.timeout_id = GObject.timeout_add(1000, self.on_timeout, None)
 
@@ -112,7 +112,7 @@ class Player(Gtk.Grid):
     def new_link(self, url):
         self.stop_action(None)
         self.player.new_uri(url)
-        
+
     def parse_millisecond(self, ms):
         if isinstance(ms, int):
             s = ms / 1000

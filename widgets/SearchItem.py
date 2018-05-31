@@ -7,7 +7,7 @@ from utils import file_request, check_create_folder
 class SearchItem(Gtk.ListBoxRow):
     def __init__(self, name, summary, date, url, image):
         super(SearchItem, self).__init__()
-        
+
         font = Font()
         font.set_size(12)
         font.set_weight(FontWeight.BOLD)
@@ -19,7 +19,7 @@ class SearchItem(Gtk.ListBoxRow):
         b_add = Gtk.Button.new_from_stock('gtk-add')
         b_add.set_relief(Gtk.ReliefStyle.NONE)
         b_add.connect('clicked', self.on_add_clicked)
-        
+
         pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(image, 100, 100, True)
         cover = Gtk.Image.new_from_pixbuf(pixbuf)
         cover.set_alignment(0,0)
@@ -35,7 +35,7 @@ class SearchItem(Gtk.ListBoxRow):
         self.add(grid)
 
         self.url = url
-        
+
         self.add_action = None
 
     def link_add_action(self, action):
@@ -48,8 +48,8 @@ class SearchItem(Gtk.ListBoxRow):
     @staticmethod
     def from_dict(d):
         summary = 'Artist: {} \nGenre: {} \nCountry: {}'.format(d['artistName'], d['primaryGenreName'], d['country'])
-        
-        date = time.strftime("%a, %d %b %Y %H:%M:%S", time.strptime(d['releaseDate'], "%Y-%m-%dT%H:%M:%SZ")) 
+
+        date = time.strftime("%a, %d %b %Y %H:%M:%S", time.strptime(d['releaseDate'], "%Y-%m-%dT%H:%M:%SZ"))
         image = SearchItem.get_image_from_url(d['collectionName'], d['artworkUrl100'])
         name = d['collectionName']
 

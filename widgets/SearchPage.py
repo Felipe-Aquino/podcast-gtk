@@ -16,7 +16,7 @@ class SearchPage(Gtk.VBox):
         self.podcast_entry.set_icon_from_stock(Gtk.EntryIconPosition.PRIMARY, 'gtk-find')
         self.podcast_entry.set_placeholder_text('Insert a new podcast feed.')
         self.podcast_entry.connect('activate', self.on_find)
-        
+
         self.search_list_box = Gtk.ListBox()
         self.spinner = Gtk.Spinner()
         self.spinner.start()
@@ -63,4 +63,4 @@ class SearchPage(Gtk.VBox):
             return file.read()
 
         requesting()
-        
+
